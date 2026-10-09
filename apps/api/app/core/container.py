@@ -5,6 +5,7 @@ Swapping a vendor means changing this file (or AI_PROVIDER), never a service.
 
 from dataclasses import dataclass, field
 
+from app.adapters.hedged_tts import HedgedTTS
 from app.core.config import Settings
 from app.domain.ports import (
     BlobStorePort,
@@ -86,6 +87,7 @@ def build_container(
     from app.adapters.weaviate.vector_store import WeaviateVectorStore
 
     llm, embedder, reranker, stt, tts, closers = _ai_adapters(settings)
+    tts = HedgedTTS(tts, hedge_after=settings.tts_hedge_after_seconds, timeout=settings.tts_timeout_seconds)
     vector_store = vector_store or WeaviateVectorStore(settings)
     blob_store = blob_store or MinioBlobStore(settings)
     vector_store.ensure_schema("fake" if settings.ai_provider == "fake" else settings.embedding_model)

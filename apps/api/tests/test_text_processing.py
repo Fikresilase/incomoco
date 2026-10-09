@@ -137,3 +137,59 @@ def test_transcription_prompt_has_vocabulary_context_and_language():
     assert "do NOT transcribe" in am and "User: Loans?" in am
     en = build_transcription_prompt(prompt_lang="en", vocabulary=[], context=None)
     assert en.startswith("Transcribe this audio verbatim.") and "Vocabulary" not in en
+
+
+def _stream_pieces(text: str, first_clause_words: int = 5) -> tuple[list[str], bool]:
+    """Feed text in tiny chunks, like streamed LLM tokens."""
+    splitter = SentenceSplitter(first_clause_words=first_clause_words)
+    pieces = []
+    for i in range(0, len(text), 3):
+        pieces += splitter.feed(text[i : i + 3])
+    return pieces + splitter.flush(), splitter.first_was_clause
+
+
+def test_first_piece_ends_at_clause_then_full_sentences():
+    pieces, clause = _stream_pieces(
+        "Inkomoko offers several services to entrepreneurs, including loans and training. "
+        "It has offices in Rwanda, Kenya, and Ethiopia."
+    )
+    assert clause is True
+    assert pieces == [
+        "Inkomoko offers several services to entrepreneurs,",
+        "including loans and training.",
+        "It has offices in Rwanda, Kenya, and Ethiopia.",  # later pieces never cut at commas
+    ]
+
+
+def test_too_short_clause_is_merged_until_enough_words():
+    pieces, _ = _stream_pieces(
+        "Yes, Inkomoko offers loans to small businesses, mostly in Kenya. Thanks for asking!"
+    )
+    assert pieces[0] == "Yes, Inkomoko offers loans to small businesses,"
+
+
+def test_amharic_clause_break():
+    pieces, clause = _stream_pieces("ኢንኮሞኮ ለአነስተኛ ንግዶች ብድር ይሰጣል፣ እንዲሁም ስልጠና ይሰጣል። ቢሮው አዲስ አበባ ነው።")
+    assert clause is True
+    assert pieces == ["ኢንኮሞኮ ለአነስተኛ ንግዶች ብድር ይሰጣል፣", "እንዲሁም ስልጠና ይሰጣል።", "ቢሮው አዲስ አበባ ነው።"]
+
+
+def test_number_commas_never_split_and_no_clause_falls_back_to_sentence():
+    pieces, clause = _stream_pieces(
+        "Loans start from 1,000 dollars for small shops in Kigali today. Ask us anytime."
+    )
+    assert clause is False
+    assert pieces[0] == "Loans start from 1,000 dollars for small shops in Kigali today."
+
+
+def test_clause_rule_is_off_by_default():
+    pieces, clause = _stream_pieces("Inkomoko offers many services to entrepreneurs, including loans.", 0)
+    assert clause is False and pieces == ["Inkomoko offers many services to entrepreneurs, including loans."]
+
+
+def test_prepend_silence_adds_pause():
+    from app.core.audio import pcm_to_wav, prepend_silence, wav_duration_ms
+
+    clip = pcm_to_wav(bytes(48_000))  # 1 s
+    assert wav_duration_ms(prepend_silence(clip, 150)) == 1150
+    assert prepend_silence(clip, 0) == clip

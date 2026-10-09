@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     llm_model: str = "google/gemini-3.5-flash-lite"
     tts_model: str = "google/gemini-3.8-flash-lite-tts"
     tts_voice: str = "Kore"
+    # Live talk: the first spoken piece may end at a clause break once it has this many words (0 = off),
+    # and the next piece starts with a short pause so the seam sounds like natural breathing.
+    tts_first_clause_words: int = 5
+    tts_clause_pause_ms: int = 150
+    # Tail-latency guard: send a backup TTS request if one is slower than this, and give up after timeout.
+    tts_hedge_after_seconds: float = 6.0
+    tts_timeout_seconds: float = 20.0
     embedding_model: str = "google/gemini-embedding-2"
     rerank_model: str = "cohere/rerank-4-fast"
 

@@ -9,10 +9,11 @@ import json
 import logging
 import time
 import uuid
+from collections.abc import Callable
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app.core.audio import join_wav
+from app.core.audio import join_wav, prepend_silence
 from app.core.container import Container
 from app.core.db import SessionFactory
 from app.rag.generation.speech_text import SentenceSplitter
@@ -120,16 +121,26 @@ class LiveTalkSession:
 
     async def _turn_task(self, audio: bytes) -> None:
         received = time.perf_counter()
+        marks: dict[str, int] = {}
+
+        def mark(stage: str) -> None:
+            marks.setdefault(stage, round((time.perf_counter() - received) * 1000))
+
         try:
             async with SessionFactory() as db:
                 context = await self.voice.recent_context(db, self.session_id, self.conversation_id)
+            mark("context")
             text, lang = await self.voice.transcribe(audio, context=context)
+            mark("stt")
             if not text.strip():
                 await self.send("turn.empty")
                 return
             ctx = await self._save_user_turn(text)
+            mark("user_saved")
             await self.send("user.transcript", text=text, lang=lang, message_id=str(ctx.user_message_id))
-            await self._answer(ctx, received)
+            await self._answer(ctx, received, mark)
+            mark("done")
+            logger.info("Live talk turn timing (ms since utterance received)", extra={"timing": marks})
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -149,21 +160,35 @@ class LiveTalkSession:
                 await db.commit()
         return ctx
 
-    async def _answer(self, ctx: TurnContext, received: float) -> None:
+    async def _answer(self, ctx: TurnContext, received: float, mark: Callable[[str], None]) -> None:
         """Route the turn, speak right away, and (if needed) follow with the grounded answer.
 
         Retrieval starts in parallel with routing, so the acknowledgement never delays the answer.
         """
         history = await self.chat.load_history(ctx)
+        mark("history")
         retrieval_task = asyncio.create_task(self.chat.retrieve(ctx, history))
-        splitter = SentenceSplitter()
+        retrieval_task.add_done_callback(lambda _: mark("retrieval"))
+        settings = self.c.settings
+        splitter = SentenceSplitter(first_clause_words=settings.tts_first_clause_words)
+        answer_pieces = 0
         audio_queue: asyncio.Queue[asyncio.Task | None] = asyncio.Queue()
         audio_parts: list[bytes] = []
         first_audio_ms: list[int] = []
         no_answer = False
 
-        def speak(sentence: str) -> None:
-            audio_queue.put_nowait(asyncio.create_task(self.c.tts.synthesize(sentence, ctx.lang)))
+        async def synthesize(text: str, pause_ms: int) -> bytes:
+            return prepend_silence(await self.c.tts.synthesize(text, ctx.lang), pause_ms)
+
+        def speak(sentence: str, pause_ms: int = 0) -> None:
+            audio_queue.put_nowait(asyncio.create_task(synthesize(sentence, pause_ms)))
+
+        def speak_answer(piece: str) -> None:
+            """Answer pieces: a short pause follows an early clause cut so the seam sounds natural."""
+            nonlocal answer_pieces
+            pause = settings.tts_clause_pause_ms if answer_pieces == 1 and splitter.first_was_clause else 0
+            speak(piece, pause)
+            answer_pieces += 1
 
         async def audio_sender() -> None:
             index = 0
@@ -175,6 +200,7 @@ class LiveTalkSession:
                     continue
                 if not first_audio_ms:
                     first_audio_ms.append(round((time.perf_counter() - received) * 1000))
+                mark(f"audio_{index}")
                 audio_parts.append(audio)
                 await self.send_audio(index, audio)
                 index += 1
@@ -182,6 +208,7 @@ class LiveTalkSession:
         sender = asyncio.create_task(audio_sender())
         try:
             decision = await self.router.decide(ctx.question, history, ctx.lang)
+            mark("route")
             logger.info(
                 "Live talk route: %s", decision.route, extra={"conversation_id": str(ctx.conversation_id)}
             )
@@ -204,15 +231,16 @@ class LiveTalkSession:
                     if event == "sources":
                         await self.send("agent.sources", **data)
                     elif event == "delta":
+                        mark("answer_first_token")
                         await self.send("agent.text.delta", text=data["text"])
-                        for sentence in splitter.feed(data["text"]):
-                            speak(sentence)
+                        for piece in splitter.feed(data["text"]):
+                            speak_answer(piece)
                     elif event == "error":
                         await self.send("error", **data)
                     elif event == "done":
                         no_answer = data["no_answer"]
-                for sentence in splitter.flush():
-                    speak(sentence)
+                for piece in splitter.flush():
+                    speak_answer(piece)
             audio_queue.put_nowait(None)
             await sender
         except asyncio.CancelledError:

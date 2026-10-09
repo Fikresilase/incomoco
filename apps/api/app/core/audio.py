@@ -31,6 +31,17 @@ def join_wav(clips: list[bytes]) -> bytes:
     return pcm_to_wav(b"".join(frames), rate=rate, channels=channels, sample_width=width)
 
 
+def prepend_silence(clip: bytes, ms: int) -> bytes:
+    """Add a short natural pause before a clip (used at clause seams)."""
+    if ms <= 0 or not clip:
+        return clip
+    with wave.open(io.BytesIO(clip), "rb") as w:
+        channels, width, rate = w.getnchannels(), w.getsampwidth(), w.getframerate()
+        frames = w.readframes(w.getnframes())
+    silence = bytes(int(rate * ms / 1000) * channels * width)
+    return pcm_to_wav(silence + frames, rate=rate, channels=channels, sample_width=width)
+
+
 def wav_duration_ms(clip: bytes) -> int | None:
     try:
         with wave.open(io.BytesIO(clip), "rb") as w:
