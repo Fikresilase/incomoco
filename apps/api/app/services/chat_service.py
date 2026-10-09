@@ -16,6 +16,7 @@ from app.core.db import SessionFactory
 from app.domain.models import ChatTurn, Lang, RetrievalResult, RetrievedChunk, Source
 from app.rag.generation.answer import AnswerStream
 from app.rag.language import detect_lang
+from app.rag.router import TurnRouter
 from app.repositories.chat_repo import ChatRepository
 from app.repositories.document_repo import DocumentRepository
 
@@ -65,6 +66,7 @@ def to_sources(chunks: list[RetrievedChunk]) -> list[Source]:
 class ChatService:
     def __init__(self, container: Container):
         self.c = container
+        self.router = TurnRouter(container.llm)
 
     async def start_turn(
         self,
@@ -131,6 +133,39 @@ class ChatService:
         """Persist a reply that needed no document search (live-talk small talk)."""
         answer = AnswerStream(self.c.llm, self.c.settings.answer_temperature)
         await self._persist(ctx, content, "complete", answer, latency_ms, latency_ms, [], None)
+
+    async def run_text_turn(self, ctx: TurnContext) -> AsyncIterator[TurnEvent]:
+        """Text chat: small talk is answered directly; everything else gets the grounded answer.
+
+        The search starts in parallel with routing, so real questions never wait for the router.
+        """
+        started = time.perf_counter()
+        history = await self.load_history(ctx)
+        retrieval_task = asyncio.create_task(self.retrieve(ctx, history))
+        try:
+            decision = await self.router.decide(ctx.question, history, ctx.lang, mode="text")
+            if decision.route == "direct":
+                retrieval_task.cancel()
+                latency_ms = round((time.perf_counter() - started) * 1000)
+                yield "sources", {"sources": []}
+                yield "delta", {"text": decision.say}
+                await asyncio.shield(self.save_direct_reply(ctx, decision.say, latency_ms))
+                yield (
+                    "done",
+                    {
+                        "assistant_message_id": str(ctx.assistant_message_id),
+                        "no_answer": False,
+                        "latency_ms": latency_ms,
+                    },
+                )
+                return
+            async for event in self.run_turn(
+                ctx, history=history, retrieval_task=retrieval_task, started=started
+            ):
+                yield event
+        finally:
+            if not retrieval_task.done():
+                retrieval_task.cancel()
 
     async def run_turn(
         self,

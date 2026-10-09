@@ -53,7 +53,7 @@ async def chat(
                 "lang": ctx.lang,
             },
         )
-        async for event, data in service.run_turn(ctx):
+        async for event, data in service.run_text_turn(ctx):
             yield _sse(event, data)
 
     return StreamingResponse(

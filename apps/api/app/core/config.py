@@ -73,6 +73,9 @@ class Settings(BaseSettings):
 
     # Web
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
+    # Extra browser origins allowed to open the live-talk WebSocket (sharing tunnels). Same-origin
+    # connections are always allowed; these cover tunnels that rewrite the Host header.
+    trusted_origin_patterns: Annotated[list[str], NoDecode] = ["*.lhr.life", "*.*.ts.net"]
     rate_limit_chat: str = "30/minute"
     rate_limit_voice: str = "60/minute"
 
@@ -81,7 +84,7 @@ class Settings(BaseSettings):
     gap_report_interval_minutes: int = 60
     gap_report_days: int = 30
 
-    @field_validator("cors_origins", "stt_vocabulary", mode="before")
+    @field_validator("cors_origins", "stt_vocabulary", "trusted_origin_patterns", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip().startswith("["):

@@ -178,6 +178,35 @@ async def test_full_flow():
             assert (await client.delete(f"/api/v1/conversations/{conversation_id}")).status_code == 204
 
 
+async def test_text_small_talk_is_answered_directly_without_search():
+    from app.main import app
+
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/v1/chat", json={"message": "Hello, how are you?"})
+            events = parse_sse(resp.text)
+            assert [e for e, _ in events] == ["start", "sources", "delta", "done"]
+            assert events[1][1]["sources"] == []
+            assert events[2][1]["text"] == "Hi! I am doing well, thanks for asking."
+            assert events[3][1]["no_answer"] is False
+
+            conversation_id = events[0][1]["conversation_id"]
+            conv = (await client.get(f"/api/v1/conversations/{conversation_id}")).json()
+            assistant = conv["messages"][1]
+            assert (
+                assistant["content"] == "Hi! I am doing well, thanks for asking."
+                and assistant["sources"] == []
+            )
+
+            # A follow-up information question in the same chat still goes through the search.
+            resp = await client.post(
+                "/api/v1/chat",
+                json={"message": "What loans does Inkomoko offer?", "conversation_id": conversation_id},
+            )
+            assert [e for e, _ in parse_sse(resp.text)][-1] == "done"
+
+
 def _live_turn(ws, audio: bytes) -> tuple[list[dict], int]:
     ws.send_bytes(audio)
     events, audio_frames = [], 0

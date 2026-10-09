@@ -1,4 +1,6 @@
 import uuid
+from fnmatch import fnmatch
+from urllib.parse import urlsplit
 
 from fastapi import (
     APIRouter,
@@ -76,11 +78,29 @@ async def speak(
     )
 
 
+def origin_allowed(websocket: WebSocket) -> bool:
+    """CORS doesn't cover WebSockets, so check Origin ourselves (cross-site WebSocket hijacking).
+
+    Allowed: same origin as the address the browser connected to (works behind the proxy and any
+    tunnel that keeps the Host header), configured local origins, and trusted tunnel patterns.
+    """
+    origin = websocket.headers.get("origin")
+    if not origin:
+        return True  # not a browser
+    settings = get_settings()
+    if origin in settings.cors_origins:
+        return True
+    origin_host = urlsplit(origin).netloc.lower()
+    for header in ("host", "x-forwarded-host"):
+        if origin_host and origin_host == (websocket.headers.get(header) or "").lower():
+            return True
+    hostname = (urlsplit(origin).hostname or "").lower()
+    return any(fnmatch(hostname, pattern.lower()) for pattern in settings.trusted_origin_patterns)
+
+
 @router.websocket("/live")
 async def live(websocket: WebSocket) -> None:
-    # CORS does not cover WebSockets: reject other sites so they can't ride the session cookie.
-    origin = websocket.headers.get("origin")
-    if origin and origin not in get_settings().cors_origins:
+    if not origin_allowed(websocket):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     # The browser has already received the session cookie from earlier HTTP calls.

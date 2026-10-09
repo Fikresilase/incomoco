@@ -21,6 +21,8 @@ docker compose up --build
 | API docs (Swagger) | http://localhost:8000/docs |
 | MinIO console | http://localhost:9011 |
 
+Everything (web, API, streamed chat, live talk) goes through one address, so the app also works on phones and other devices through an HTTPS tunnel. See [docs/remote-access.md](docs/remote-access.md).
+
 - **No API key yet?** Set `AI_PROVIDER=fake` in `.env`. Everything runs offline with canned answers, which is useful for UI work.
 - **Port clash?** Every host port is configurable in `.env` (`WEB_PORT`, `API_PORT`, `POSTGRES_PORT`, …).
 
@@ -30,6 +32,7 @@ docker compose up --build
 
 | Service | Role |
 |---|---|
+| `proxy` | nginx: the single entry point on port 3000 (web app, API, WebSockets) |
 | `web` | Next.js 16 (Bun): chat and admin UI, with hot reload |
 | `api` | FastAPI: REST, SSE chat streaming, WebSocket live talk, with hot reload |
 | `worker` | Ingestion jobs (PDF via Gemini vision → Markdown → structure-aware chunks → contextual retrieval → embeddings → Weaviate) and the hourly knowledge-gap report |

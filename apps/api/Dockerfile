@@ -17,4 +17,5 @@ RUN uv sync --frozen --no-install-project --no-dev
 COPY . .
 
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# --proxy-headers: behind the web proxy, take the client IP from X-Forwarded-For (per-user rate limits).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]

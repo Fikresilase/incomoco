@@ -17,7 +17,6 @@ from app.core.audio import join_wav, prepend_silence
 from app.core.container import Container
 from app.core.db import SessionFactory
 from app.rag.generation.speech_text import SentenceSplitter
-from app.rag.router import TurnRouter
 from app.repositories.chat_repo import ChatRepository
 from app.services.chat_service import ChatService, TurnContext
 from app.services.voice_service import VoiceService
@@ -35,7 +34,6 @@ class LiveTalkSession:
         self.session_id = session_id
         self.chat = ChatService(container)
         self.voice = VoiceService(container)
-        self.router = TurnRouter(container.llm)
         self.conversation_id: uuid.UUID | None = None
         self._send_lock = asyncio.Lock()
         self._turn: asyncio.Task | None = None
@@ -207,7 +205,7 @@ class LiveTalkSession:
 
         sender = asyncio.create_task(audio_sender())
         try:
-            decision = await self.router.decide(ctx.question, history, ctx.lang)
+            decision = await self.chat.router.decide(ctx.question, history, ctx.lang, mode="voice")
             mark("route")
             logger.info(
                 "Live talk route: %s", decision.route, extra={"conversation_id": str(ctx.conversation_id)}

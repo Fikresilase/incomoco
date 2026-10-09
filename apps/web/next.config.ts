@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Dev server only: let phones/colleagues load dev assets through the sharing tunnels
+  // (localhost.run and Tailscale). Without this the page renders but its JS is blocked (403),
+  // so nothing is clickable. Production builds don't need it.
+  allowedDevOrigins: ["*.lhr.life", "*.*.ts.net"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
