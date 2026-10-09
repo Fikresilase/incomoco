@@ -1,0 +1,36 @@
+/*
+ * Inkomoko brand tokens (design_and_architecture.md §4.3).
+ * Extracted from inkomoko.com on 2026-10-09; to be confirmed against Inkomoko's brand guidelines.
+ */
+:root {
+  --primary: #ea4e35; /* coral: primary CTAs, mic + live talk, active states */
+  --primary-foreground: #f9fafb;
+  --secondary: #00205f; /* navy: body text, headings, user bubble */
+  --secondary-foreground: #f9fafb;
+  --navy: #00205f;
+  --info: #66ccff; /* highlights, live-talk orb */
+  --violet: #1c56c8; /* secondary accent, links */
+  --background: #ffffff;
+  --foreground: #030712;
+  --card: #ffffff;
+  --card-foreground: #030712;
+  --popover: #ffffff;
+  --popover-foreground: #030712;
+  --muted: #f3f4f6;
+  --muted-foreground: #6a7282;
+  --accent: #f3f4f6;
+  --accent-foreground: #00205f;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #1c56c8;
+  --destructive: #e40014;
+  --success: #00796b;
+  --radius: 0.625rem;
+
+  /* Admin chart palette */
+  --chart-1: #f05100;
+  --chart-2: #009588;
+  --chart-3: #104e64;
+  --chart-4: #fcbb00;
+  --chart-5: #f99c00;
+}

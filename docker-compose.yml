@@ -1,0 +1,127 @@
+name: inkomoko
+
+x-api-env: &api-env
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    AI_PROVIDER: ${AI_PROVIDER:-openrouter}
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-inkomoko}:${POSTGRES_PASSWORD:-inkomoko}@postgres:5432/${POSTGRES_DB:-inkomoko}
+    WEAVIATE_HOST: weaviate
+    WEAVIATE_HTTP_PORT: "8080"
+    WEAVIATE_GRPC_PORT: "50051"
+    MINIO_ENDPOINT: minio:9000
+    MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-inkomoko}
+    MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-inkomoko-secret}
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:${WEB_PORT:-3000}}
+    WATCHFILES_FORCE_POLLING: "true"
+
+services:
+  web:
+    build: ./apps/web
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${API_PORT:-8000}}
+      INTERNAL_API_URL: http://api:8000
+      NEXT_PUBLIC_SHOW_SOURCES: ${NEXT_PUBLIC_SHOW_SOURCES:-false}
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/.next
+    depends_on:
+      - api
+
+  api:
+    build: ./apps/api
+    <<: *api-env
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./apps/api:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      weaviate:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build: ./apps/api
+    <<: *api-env
+    command: python -m app.workers.main
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      api:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-inkomoko}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inkomoko}
+      POSTGRES_DB: ${POSTGRES_DB:-inkomoko}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inkomoko} -d ${POSTGRES_DB:-inkomoko}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.39.9
+    command: ["--host", "0.0.0.0", "--port", "8080", "--scheme", "http"]
+    environment:
+      QUERY_DEFAULTS_LIMIT: "25"
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      DEFAULT_VECTORIZER_MODULE: none
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: node1
+    ports:
+      - "${WEAVIATE_PORT:-8081}:8080"
+      - "${WEAVIATE_GRPC_PORT:-50052}:50051"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v1/.well-known/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-inkomoko}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-inkomoko-secret}
+    ports:
+      - "${MINIO_PORT:-9010}:9000"
+      - "${MINIO_CONSOLE_PORT:-9011}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pg_data:
+  weaviate_data:
+  minio_data:
+  web_node_modules:
+  web_next:

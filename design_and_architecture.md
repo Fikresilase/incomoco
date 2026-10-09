@@ -1,6 +1,6 @@
 # Inkomoko Assistant: Design & Architecture
 
-> **Status:** DRAFT v0.3. All major decisions agreed (§12). AI-assisted; this needs human review before it is shared with Inkomoko.
+> **Status:** DRAFT v0.5 (implemented). All major decisions agreed (§12). AI-assisted; this needs human review before it is shared with Inkomoko.
 > **Last updated:** 2026-10-09
 > **Repo:** `incomoco` (monorepo)
 > **Context:** Demo application
@@ -364,9 +364,9 @@ sequenceDiagram
 | Property | Purpose |
 |---|---|
 | `text` | Original chunk (for display) |
-| `search_text` | Context + breadcrumb + normalized text (BM25-indexed) |
-| `document_id`, `title`, `breadcrumb`, `lang`, `page_start`, `page_end`, `chunk_index` | Metadata, filters, citations |
-| vector | Gemini Embedding 2 of `search_text`. `vectorizer: none`, because we supply the vectors |
+| `search_text` | Context + breadcrumb + text, normalized (homophones unified, punctuation removed, lowercased); BM25-indexed with Weaviate `word` tokenization (verified to handle Ethiopic script) |
+| `document_id`, `title`, `breadcrumb`, `lang`, `page_start`, `page_end`, `chunk_index` | Metadata, filters, citations. Filter fields use exact-match (`field`) tokenization |
+| vector | Gemini Embedding 2 of context + breadcrumb + **original** text. `vectorizer: none`, because we supply the vectors |
 
 ### 6.4 Live talk (separate speech-to-text and text-to-speech models)
 ```mermaid
@@ -426,32 +426,47 @@ sequenceDiagram
 ### 7.1 Stores
 | Store | Holds |
 |---|---|
-| **PostgreSQL 16** | Sessions, conversations, messages, feedback, documents and job status, retrieval traces, audit log |
-| **Weaviate** | Chunks, vectors, BM25 index |
-| **MinIO** | Original uploaded files (bucket `documents`) |
+| **PostgreSQL 16** | 11 tables (§7.2): sessions, conversations, messages, citations, feedback, traces, TTS audio index, documents, ingestion jobs, gap reports, audit log |
+| **Weaviate** | Collection `Chunk`: chunk text, vectors, BM25 index (§6.3). Chunks live **only** in Weaviate |
+| **MinIO** | Bucket `documents`: original uploads (`documents/{id}/{filename}`) and generated speech (`tts/{message_id}.wav`) |
 
-### 7.2 Core tables (logical)
+### 7.2 Schema (PostgreSQL)
+All IDs are UUIDs, all timestamps are `timestamptz`, and enums are `text` with `CHECK` constraints. There is no users table, because the single admin comes from env.
+
+```mermaid
+erDiagram
+    chat_sessions ||--o{ conversations : has
+    conversations ||--o{ messages : contains
+    messages ||--o{ message_sources : cites
+    messages ||--o| message_feedback : rated
+    messages ||--o| retrieval_traces : traced
+    messages ||--o| message_audio : spoken
+    documents ||--o{ message_sources : cited_in
+    documents ||--o{ ingestion_jobs : processed_by
 ```
-chat_sessions(id, created_at, last_seen_at)
-conversations(id, session_id, title, created_at, updated_at)
-messages(id, conversation_id, role[user|assistant], content, lang[am|en],
-         modality[text|dictation|voice], latency_ms, tokens_in, tokens_out, created_at)
-message_feedback(id, message_id, rating[+1|-1], comment, created_at)
-retrieval_traces(id, message_id, hyde_text, candidates_json, reranked_json, stage_latency_json)
-documents(id, title, filename, mime, size_bytes, checksum, lang,
-          status[queued|processing|ready|failed|deleting], chunk_count, error,
-          attempts, uploaded_at, deleted_at)
-audit_log(id, actor, action, entity, entity_id, metadata_json, created_at)
-```
+
+| # | Table | Fields |
+|---|---|---|
+| 1 | `chat_sessions` | `id` (= cookie), `device_type` (`mobile`/`desktop`, null), `created_at`, `last_seen_at` |
+| 2 | `conversations` | `id`, `session_id` FK, `title` (first message, ≤ 80 chars), `created_at`, `updated_at` |
+| 3 | `messages` | `id`, `conversation_id` FK, `role` (`user`/`assistant`), `content`, `lang` (`am`/`en`), `modality` (`text`/`dictation`/`voice`), `status` (`complete`/`interrupted`/`error`), `no_answer`, `first_token_ms`, `latency_ms`, `tokens_in`, `tokens_out`, `model`, `created_at` |
+| 4 | `message_sources` | `id`, `message_id` FK, `rank` (1–8), `document_id` FK, `chunk_id`, `title`, `breadcrumb`, `page_start`, `page_end`, `snippet`, `rerank_score`. A snapshot, so citations survive document deletion |
+| 5 | `message_feedback` | `message_id` PK/FK, `rating` (`1`/`-1`), `comment`, `created_at`, `updated_at` |
+| 6 | `retrieval_traces` | `message_id` PK/FK, `query`, `hyde_text`, `candidates` (jsonb, top 30), `reranked` (jsonb, top 8), `top_rerank_score`, `stage_latency_ms` (jsonb), `created_at` |
+| 7 | `message_audio` | `message_id` PK/FK, `storage_key` (MinIO), `format` (`wav`: Gemini TTS returns 24 kHz PCM, wrapped as WAV), `voice`, `model`, `duration_ms`, `created_at`. All TTS output is stored and reused for replay |
+| 8 | `documents` | `id`, `title`, `filename`, `mime`, `size_bytes`, `checksum` (SHA-256, unique among non-deleted documents), `storage_key`, `lang`, `page_count`, `status` (`queued`/`processing`/`ready`/`failed`/`deleting`/`deleted`), `chunk_count`, `error`, `uploaded_at`, `processed_at`, `deleted_at` |
+| 9 | `ingestion_jobs` | `id`, `document_id` FK, `type` (`ingest`/`delete`), `status` (`queued`/`running`/`succeeded`/`failed`), `attempts` (max 3), `error`, `created_at`, `started_at`, `finished_at`. Claimed with `SKIP LOCKED` |
+| 10 | `gap_reports` | `id`, `period_days`, `question_count`, `topics` (jsonb `[{topic, count, examples[]}]`), `created_at` |
+| 11 | `audit_log` | `id`, `actor`, `action`, `entity_type`, `entity_id`, `metadata` (jsonb), `created_at` |
 
 ### 7.3 Document deletion
-1. Set `status = deleting`, which removes the document from retrieval immediately.
-2. The worker deletes the document's Weaviate chunks (by `document_id`), then the MinIO object, then sets `deleted_at`.
-3. Write an audit log entry.
+1. Set `documents.status = deleting`, which removes the document from retrieval immediately, and enqueue a `delete` job.
+2. The worker deletes the document's Weaviate chunks (by `document_id`) and its MinIO object, then sets `status = deleted` and `deleted_at`.
+3. Write an audit log entry. Rows in `message_sources` keep their snapshot, so old citations still display.
 
 ### 7.4 Data retention & privacy
 - **Conversations are kept indefinitely. There is no auto-deletion** (agreed).
-- Raw voice audio is **not stored**; only transcripts are kept.
+- **User voice recordings are not stored**; only their transcripts are kept. **Generated speech (TTS) is stored** in MinIO and replayed from there.
 - Analytics show aggregates only.
 - Anonymous users can still type personal data, so retention should be revisited before any real deployment.
 
@@ -510,19 +525,19 @@ incomoco/
 ```
 
 ### 10.2 Docker Compose services
-**Collaborators need only Docker:** `docker compose up` starts everything, with hot reload for both apps.
+**Collaborators need only Docker:** `docker compose up` starts everything, with hot reload for both apps. Every host port is configurable in `.env` so the stack can coexist with other projects.
 
-| Service | Build / image | Ports | Volumes | Notes |
+| Service | Build / image | Host port (default) | Volumes | Notes |
 |---|---|---|---|---|
-| `web` | `apps/web/Dockerfile` (`oven/bun`) | 3000 | bind `apps/web`, named `web_node_modules` | `bun run dev`; `WATCHPACK_POLLING=true` for reliable hot reload on Windows/macOS |
-| `api` | `apps/api/Dockerfile` (uv) | 8000 | bind `apps/api` | Runs Alembic migrations, then `uvicorn --reload` |
-| `worker` | same image as `api` | n/a | bind `apps/api` | `python -m app.workers.ingest_worker` |
-| `postgres` | `postgres:16` | 5432 | `pg_data` | App DB and job queue |
-| `weaviate` | `semitechnologies/weaviate` (pinned) | 8080, 50051 | `weaviate_data` | `DEFAULT_VECTORIZER_MODULE=none` |
-| `minio` | `minio/minio` | 9000, 9001 | `minio_data` | Bucket created on startup |
+| `web` | `apps/web/Dockerfile` (`oven/bun`) | `WEB_PORT` (3000) | bind `apps/web`, named `node_modules` and `.next` | `bun run dev`; `WATCHPACK_POLLING=true` for hot reload on Windows/macOS |
+| `api` | `apps/api/Dockerfile` (uv) | `API_PORT` (8000) | bind `apps/api` | Runs Alembic migrations, then `uvicorn --reload`; health-checked |
+| `worker` | same image as `api` | n/a | bind `apps/api` | `python -m app.workers.main`; starts after `api` is healthy |
+| `postgres` | `postgres:16-alpine` | `POSTGRES_PORT` (5433) | `pg_data` | App DB and job queue |
+| `weaviate` | `semitechnologies/weaviate:1.39.9` | `WEAVIATE_PORT` (8081), `WEAVIATE_GRPC_PORT` (50052) | `weaviate_data` | `DEFAULT_VECTORIZER_MODULE=none` |
+| `minio` | `minio/minio` | `MINIO_PORT` (9010), `MINIO_CONSOLE_PORT` (9011) | `minio_data` | Bucket created on startup |
 
-- **API URLs:** the browser uses `NEXT_PUBLIC_API_URL=http://localhost:8000`, and server-side calls from the `web` container use `INTERNAL_API_URL=http://api:8000`.
-- **Startup order:** health checks make `api` and `worker` wait for `postgres`, `weaviate`, and `minio`.
+- **API URLs:** the browser uses `NEXT_PUBLIC_API_URL` (derived from `API_PORT`), and server-side calls from `web` use `INTERNAL_API_URL=http://api:8000`.
+- **Offline mode:** `AI_PROVIDER=fake` swaps in deterministic offline adapters (same ports), so the full stack and the tests run without an OpenRouter key.
 - **Mic access** works because the app is served from `localhost`.
 - **Production images** (Next.js `standalone` output, no bind mounts) come later, once hosting is decided.
 
@@ -574,6 +589,6 @@ incomoco/
 | `gemini-embedding-2` input limit and vector dimension | Confirm before creating the Weaviate collection |
 | OpenRouter speech-to-text/TTS request formats and audio formats | Confirm in the Phase 1 spike for the adapter |
 | `cohere/rerank-4-fast` quality on Amharic | Quick check on the eval set; swap reranker through config if weak |
-| Weaviate BM25 tokenization of Ethiopic script | Verify; normalization in §6.2 helps |
+| Weaviate BM25 tokenization of Ethiopic script | ✅ Verified: `word` tokenization matches Amharic words, and homophone variants match after normalization (regression test in `tests/test_integration.py`) |
 | Hot reload in Docker on Windows | `WATCHPACK_POLLING`; fall back to running `web` on the host if it's slow |
 | Demo credentials reach a real deployment | Env-driven; warning in §9.1 |
