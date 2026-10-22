@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 
 Mode = Literal["voice", "text"]
 
-_LANGUAGE = {"am": "Amharic (in Ge'ez script)", "en": "English"}
+_LANGUAGE = {
+    "am": "Amharic (in Ge'ez script)",
+    "om": "Afaan Oromo",
+    "so": "Somali",
+    "en": "English",
+}
 
 _ROLE = {
     "voice": "You are the voice of the Inkomoko Assistant in a live, spoken conversation.",
@@ -50,7 +55,7 @@ _FORMAT = 'Return only JSON: {{"route": "direct" or "search", "say": "..."}}'
 
 def _system_prompt(mode: Mode, lang: Lang) -> str:
     parts = [_ROLE[mode] + " " + _ROUTING, _SAY[mode], _FORMAT]
-    return "\n\n".join(parts).format(language=_LANGUAGE[lang])
+    return "\n\n".join(parts).format(language=_LANGUAGE.get(lang, "English"))
 
 
 @dataclass(slots=True)

@@ -19,6 +19,11 @@ import { authKeys, getMe, logout } from "../api";
 const NAV = [
   { href: "/admin", key: "overview" },
   { href: "/admin/documents", key: "documents" },
+  { href: "/admin/learning/skills", key: "learningSkills" },
+  { href: "/admin/learning/resources", key: "learningResources" },
+  { href: "/admin/entrepreneurs", key: "entrepreneurs" },
+  { href: "/admin/adviser-queue", key: "adviserQueue" },
+  { href: "/admin/knowledge-gaps", key: "knowledgeGaps" },
 ] as const;
 
 /** Route guard + chrome for admin pages. Redirects to /admin/login on 401. */

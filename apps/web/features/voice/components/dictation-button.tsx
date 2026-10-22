@@ -3,6 +3,7 @@
 import { Check, Loader2, Mic, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import type { Lang } from "@/lib/api";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDuration } from "@/lib/format";
 import { MAX_DICTATION_MS, useDictation } from "../hooks/use-dictation";
@@ -13,6 +14,7 @@ export interface DictationButtonProps {
   onText: (text: string) => void;
   /** Current conversation, used as transcription context. */
   conversationId?: string | null;
+  lang?: Lang;
   disabled?: boolean;
 }
 
@@ -20,9 +22,9 @@ export interface DictationButtonProps {
  * Mic button for dictation. While recording, a panel covers the input box
  * (its nearest positioned ancestor) with a live waveform, timer, cancel and stop.
  */
-export function DictationButton({ onText, conversationId, disabled }: DictationButtonProps) {
+export function DictationButton({ onText, conversationId, lang, disabled }: DictationButtonProps) {
   const t = useTranslations("voice");
-  const { state, elapsedMs, start, stop, cancel, getLevel } = useDictation(onText, conversationId);
+  const { state, elapsedMs, start, stop, cancel, getLevel } = useDictation(onText, conversationId, lang);
   const active = state !== "idle";
 
   return (

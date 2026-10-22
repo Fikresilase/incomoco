@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     minio_secret_key: str = "inkomoko-secret"
     minio_bucket: str = "documents"
     minio_secure: bool = False
+    learning_media_url_ttl_seconds: int = 300
 
     # AI gateway. ai_provider="fake" runs fully offline (tests, no API key).
     ai_provider: str = "openrouter"
@@ -31,6 +32,8 @@ class Settings(BaseSettings):
     llm_model: str = "google/gemini-3.5-flash-lite"
     tts_model: str = "google/gemini-3.8-flash-lite-tts"
     tts_voice: str = "Kore"
+    # Languages enabled for read-aloud/live-talk output. Keep Oromo/Somali disabled until evaluated.
+    tts_allowed_langs: Annotated[list[str], NoDecode] = ["am", "en"]
     # Live talk: the first spoken piece may end at a clause break once it has this many words (0 = off),
     # and the next piece starts with a short pause so the seam sounds like natural breathing.
     tts_first_clause_words: int = 5
@@ -84,7 +87,7 @@ class Settings(BaseSettings):
     gap_report_interval_minutes: int = 60
     gap_report_days: int = 30
 
-    @field_validator("cors_origins", "stt_vocabulary", "trusted_origin_patterns", mode="before")
+    @field_validator("cors_origins", "stt_vocabulary", "trusted_origin_patterns", "tts_allowed_langs", mode="before")
     @classmethod
     def _split_origins(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip().startswith("["):

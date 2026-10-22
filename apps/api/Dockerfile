@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /uvx /bin/
+RUN python -m pip install --no-cache-dir uv==0.13.0
 
 ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \

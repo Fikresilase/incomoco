@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-Lang = Literal["am", "en"]
+Lang = Literal["am", "om", "so", "en"]
 
 
 @dataclass(slots=True)

@@ -72,7 +72,7 @@ def _ai_adapters(settings: Settings) -> tuple[LLMPort, EmbedderPort, RerankerPor
             prompt_lang=settings.stt_prompt_lang,
             vocabulary=[VocabularyTerm.parse(v) for v in settings.stt_vocabulary if v.strip()],
         ),
-        OpenRouterTTS(client, settings.tts_model, settings.tts_voice),
+        OpenRouterTTS(client, settings.tts_model, settings.tts_voice, settings.tts_allowed_langs),
         [client.aclose],
     )
 

@@ -19,6 +19,8 @@ export const SERIES = {
   negative: CHART.coral,
   en: CHART.deepTeal,
   am: CHART.coral,
+  om: CHART.teal,
+  so: CHART.amber,
   text: CHART.deepTeal,
   dictation: CHART.teal,
   voice: CHART.coral,

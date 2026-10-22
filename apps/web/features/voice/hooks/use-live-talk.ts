@@ -4,6 +4,7 @@ import type { MicVAD } from "@ricky0123/vad-web";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveClientMessage, LiveServerMessage } from "@/lib/api";
+import type { Lang } from "@/lib/api";
 import { PlaybackQueue } from "@/lib/audio/playback-queue";
 import { MicPermissionError, MicUnavailableError } from "@/lib/audio/recorder";
 import { TARGET_SAMPLE_RATE, encodeWav } from "@/lib/audio/wav";
@@ -179,7 +180,7 @@ export function useLiveTalk() {
   );
 
   const start = useCallback(
-    (conversationId: string | null) => {
+    (conversationId: string | null, lang: Lang) => {
       const previous = sessionRef.current;
       if (previous && !previous.closed) teardown(previous, true);
 
@@ -211,7 +212,7 @@ export function useLiveTalk() {
       sessionRef.current = s;
       queue.onPlayingChange = () => refreshStatus();
 
-      ws.onopen = () => send(s, { type: "session.start", conversation_id: conversationId });
+      ws.onopen = () => send(s, { type: "session.start", conversation_id: conversationId, lang });
       ws.onmessage = (event: MessageEvent<string | ArrayBuffer>) => {
         if (s.closed) return;
         if (typeof event.data !== "string") {

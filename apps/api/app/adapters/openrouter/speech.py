@@ -19,10 +19,15 @@ class GeminiChatSTT:
         self._vocabulary = vocabulary
 
     async def transcribe(
-        self, audio: bytes, audio_format: str = "wav", context: list[ChatTurn] | None = None
+        self,
+        audio: bytes,
+        audio_format: str = "wav",
+        context: list[ChatTurn] | None = None,
+        *,
+        language_hint: str | None = None,
     ) -> str:
         prompt = build_transcription_prompt(
-            prompt_lang=self._prompt_lang, vocabulary=self._vocabulary, context=context
+            prompt_lang=language_hint or self._prompt_lang, vocabulary=self._vocabulary, context=context
         )
         content = [
             {"type": "text", "text": prompt},
@@ -44,13 +49,24 @@ class OpenRouterTTS:
     audio_format = "wav"
     content_type = "audio/wav"
 
-    def __init__(self, client: OpenRouterClient, model: str, voice: str):
+    def __init__(self, client: OpenRouterClient, model: str, voice: str, allowed_langs: list[str]):
         self._client = client
+        self._allowed_langs = set(allowed_langs)
         self.model = model
         self.voice = voice
 
+    def supports(self, lang: str) -> bool:
+        return lang in self._allowed_langs
+
     async def synthesize(self, text: str, lang: str) -> bytes:
-        language = "Amharic" if lang == "am" else "English"
+        if not self.supports(lang):
+            raise ValueError(f"TTS is not enabled for language {lang!r}")
+        language = {
+            "am": "Amharic",
+            "om": "Afaan Oromo",
+            "so": "Somali",
+            "en": "English",
+        }.get(lang, "English")
         response = await self._client.http.post(
             "/audio/speech",
             json={

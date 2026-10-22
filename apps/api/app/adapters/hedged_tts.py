@@ -28,6 +28,9 @@ class HedgedTTS:
         self.audio_format = inner.audio_format
         self.content_type = inner.content_type
 
+    def supports(self, lang: str) -> bool:
+        return self._inner.supports(lang)
+
     async def synthesize(self, text: str, lang: str) -> bytes:
         try:
             return await asyncio.wait_for(self._race(text, lang), timeout=self._timeout)

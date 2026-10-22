@@ -8,6 +8,8 @@ import type { Locale } from "@/lib/i18n/config";
 const OPTIONS: { value: Locale; label: string; lang: string }[] = [
   { value: "en", label: "EN", lang: "en" },
   { value: "am", label: "አማ", lang: "am" },
+  { value: "om", label: "OR", lang: "om" },
+  { value: "so", label: "SO", lang: "so" },
 ];
 
 /** EN/አማ segmented toggle. The choice is remembered per browser. */

@@ -76,7 +76,12 @@ class AnalyticsService:
             },
             "timeseries": await repo.timeseries(since),
             "feedback_timeseries": await repo.feedback_timeseries(since),
-            "languages": {"am": languages.get("am", 0), "en": languages.get("en", 0)},
+            "languages": {
+                "am": languages.get("am", 0),
+                "om": languages.get("om", 0),
+                "so": languages.get("so", 0),
+                "en": languages.get("en", 0),
+            },
             "modalities": {m: modalities.get(m, 0) for m in ("text", "dictation", "voice")},
             "devices": {d: devices.get(d, 0) for d in ("mobile", "desktop", "unknown")},
             "top_documents": await repo.top_documents(since),

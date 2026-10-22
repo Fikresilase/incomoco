@@ -13,6 +13,8 @@ from app.core.db import get_db
 from app.repositories.chat_repo import ChatRepository
 from app.schemas.chat import ChatRequest, ConversationOut, ConversationSummaryOut, FeedbackIn, MessageOut
 from app.services.chat_service import ChatService, NotFoundError
+from app.services.entrepreneur import EntrepreneurContextService
+from app.services.learning import LearningRecommendationService
 
 router = APIRouter(tags=["chat"])
 
@@ -37,6 +39,7 @@ async def chat(
             message=body.message,
             conversation_id=body.conversation_id,
             modality=body.modality,
+            lang=body.lang,
             regenerate=body.regenerate,
             device_type=device_type_from(request),
         )
@@ -55,6 +58,18 @@ async def chat(
         )
         async for event, data in service.run_text_turn(ctx):
             yield _sse(event, data)
+        try:
+            profile = await EntrepreneurContextService().get_guest(db, session_id_from(request))
+            recommendation = await LearningRecommendationService().recommend(db, ctx.question, profile)
+            recommendations = recommendation.to_public()
+            message = await ChatRepository(db).get_message(ctx.assistant_message_id)
+            if message is not None:
+                message.learning_recommendations = recommendations
+                await db.commit()
+            yield _sse("learning_recommendations", {"recommendations": recommendations})
+        except Exception:
+            await db.rollback()
+            yield _sse("learning_recommendations", {"recommendations": []})
 
     return StreamingResponse(
         events(),

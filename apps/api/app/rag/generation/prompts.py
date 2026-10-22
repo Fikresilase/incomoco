@@ -4,7 +4,12 @@ from app.domain.models import ChatTurn, Lang, RetrievedChunk
 
 NO_ANSWER_MARKER = "[[NO_ANSWER]]"
 
-_LANGUAGE = {"am": "Amharic (in Ge'ez script)", "en": "English"}
+_LANGUAGE = {
+    "am": "Amharic (in Ge'ez script)",
+    "om": "Afaan Oromo",
+    "so": "Somali",
+    "en": "English",
+}
 
 _SYSTEM = """You are the Inkomoko Assistant, a helpful, warm, and concise assistant for Inkomoko.
 
@@ -42,12 +47,14 @@ def format_sources(chunks: list[RetrievedChunk]) -> str:
 
 
 def build_answer_messages(
-    question: str, history: list[ChatTurn], chunks: list[RetrievedChunk], lang: Lang, *, voice: bool
+    question: str, history: list[ChatTurn], chunks: list[RetrievedChunk], lang: Lang, *, voice: bool,
+    entrepreneur_context: str = ""
 ) -> list[dict]:
     system = _SYSTEM.format(
-        marker=NO_ANSWER_MARKER, language=_LANGUAGE[lang], style=_VOICE_STYLE if voice else _TEXT_STYLE
+        marker=NO_ANSWER_MARKER, language=_LANGUAGE.get(lang, "English"), style=_VOICE_STYLE if voice else _TEXT_STYLE
     )
-    messages: list[dict] = [{"role": "system", "content": system + "\n\n" + format_sources(chunks)}]
+    context = f"\n\n{entrepreneur_context}" if entrepreneur_context else ""
+    messages: list[dict] = [{"role": "system", "content": system + context + "\n\n" + format_sources(chunks)}]
     messages += [{"role": t.role, "content": t.content} for t in history]
     messages.append({"role": "user", "content": question})
     return messages

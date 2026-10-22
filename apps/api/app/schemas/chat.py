@@ -6,11 +6,14 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.repositories.orm import Conversation, Message
 
+Lang = Literal["am", "om", "so", "en"]
+
 
 class ChatRequest(BaseModel):
     message: str | None = Field(default=None, max_length=4000)
     conversation_id: uuid.UUID | None = None
     modality: Literal["text", "dictation"] = "text"
+    lang: Lang | None = None
     regenerate: bool = False
 
     @model_validator(mode="after")
@@ -37,13 +40,14 @@ class MessageOut(BaseModel):
     id: uuid.UUID
     role: Literal["user", "assistant"]
     content: str
-    lang: Literal["am", "en"]
+    lang: Lang
     modality: Literal["text", "dictation", "voice"]
     status: Literal["complete", "interrupted", "error"]
     no_answer: bool
     sources: list[SourceOut]
     feedback: Literal[1, -1] | None
     has_audio: bool
+    learning_recommendations: list[dict] = []
     created_at: datetime
 
     @classmethod
@@ -71,6 +75,7 @@ class MessageOut(BaseModel):
             ],
             feedback=m.feedback.rating if m.feedback else None,
             has_audio=m.audio is not None,
+            learning_recommendations=m.learning_recommendations or [],
             created_at=m.created_at,
         )
 

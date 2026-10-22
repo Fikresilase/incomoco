@@ -112,6 +112,8 @@ export function AnalyticsOverview() {
                 items={[
                   { key: "en", label: t("english"), value: data.languages.en, color: SERIES.en },
                   { key: "am", label: t("amharic"), value: data.languages.am, color: SERIES.am },
+                  { key: "om", label: t("oromo"), value: data.languages.om, color: SERIES.om },
+                  { key: "so", label: t("somali"), value: data.languages.so, color: SERIES.so },
                 ]}
               />
             </ChartCard>

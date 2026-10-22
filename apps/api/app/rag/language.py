@@ -4,6 +4,12 @@ import re
 
 from app.domain.models import Lang
 
+SUPPORTED_LANGS = {"am", "om", "so", "en"}
+
+
+def coerce_lang(value: str | None) -> Lang | None:
+    return value if value in SUPPORTED_LANGS else None  # type: ignore[return-value]
+
 _ETHIOPIC = re.compile(r"[ሀ-᎟ⶀ-⷟꬀-꬯]")
 _LATIN = re.compile(r"[A-Za-z]")
 
@@ -20,7 +26,7 @@ def script_counts(text: str) -> tuple[int, int]:
 
 
 def detect_lang(text: str) -> Lang:
-    """Amharic if Ethiopic script dominates the message, else English."""
+    """Best-effort fallback only. Prefer explicit user or conversation language."""
     ethiopic, latin = script_counts(text)
     return "am" if ethiopic > 0 and ethiopic >= latin else "en"
 

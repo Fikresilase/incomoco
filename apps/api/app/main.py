@@ -8,7 +8,18 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.deps import limiter, parse_session_cookie
-from app.api.v1 import admin_auth, analytics, chat, documents, voice
+from app.api.v1 import (
+    admin_auth,
+    adviser_admin,
+    analytics,
+    chat,
+    dashboard,
+    documents,
+    entrepreneur,
+    learning,
+    learning_admin,
+    voice,
+)
 from app.core.config import get_settings
 from app.core.container import build_container
 from app.core.logging import setup_logging
@@ -57,7 +68,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    for router in (chat.router, voice.router, admin_auth.router, documents.router, analytics.router):
+    for router in (chat.router, voice.router, entrepreneur.router, dashboard.router, learning.router, learning_admin.router, adviser_admin.router, admin_auth.router, documents.router, analytics.router):
         app.include_router(router, prefix="/api/v1")
 
     @app.get("/health", tags=["health"])

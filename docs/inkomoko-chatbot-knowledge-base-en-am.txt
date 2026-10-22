@@ -1,0 +1,165 @@
+Inkomoko Chatbot Knowledge Base
+English & Amharic • Draft for review • Source: supplied institutional analysis
+Chatbot answer policy
+Answer in the language of the user; do not mix languages unless requested.
+Use retrieved facts only. If no verified answer exists, acknowledge the gap and refer to an official Inkomoko contact.
+Never invent loan eligibility, interest rates, repayment terms, approvals, phone numbers, office hours, or application links.
+Do not interpret regulatory rules as individual legal advice.
+For financial decisions, request confirmation of current terms from Inkomoko.
+Preserve document IDs and source-section metadata for retrieval and auditing.
+INK-KB-EN-001 | What is Inkomoko?
+Inkomoko is a social enterprise supporting entrepreneurs from displaced and host communities through financing, business training, advisory services, and market connections. It began in Rwanda in 2012 as African Entrepreneur Collective (AEC).
+Language: en  •  Topic: identity  •  Source: Institutional Background; EN-01
+INK-KB-EN-002 | Who founded Inkomoko?
+Sara Leedom and Julienne Oyler as co-founders of Inkomoko in Rwanda in 2012.
+Language: en  •  Topic: founders  •  Source: Institutional Background; EN-01
+INK-KB-EN-003 | What is Inkomoko’s mission?
+Inkomoko aims to accelerate economic inclusion by helping entrepreneurs in displaced and host communities access capital, business skills, and markets.
+Language: en  •  Topic: mission  •  Source: Institutional Background; EN-01
+INK-KB-EN-004 | What services does Inkomoko provide?
+Its main service areas are investment or financing, capacity building through training and business advisory, and advocacy and market linkages.
+Language: en  •  Topic: services  •  Source: Core Pillars; EN-02
+INK-KB-EN-005 | What business training is available?
+The group training in bookkeeping, cash flow, inventory management, business modeling, and investment readiness, alongside one-on-one support from Business Development Advisors. Availability depends on local programs.
+Language: en  •  Topic: training  •  Source: Capacity Building; EN-02
+INK-KB-EN-006 | Does Inkomoko offer loans?
+Yes. The source describes micro and small-business working-capital financing, including financing for inventory, equipment, and expansion. Current product availability and terms must be confirmed with Inkomoko.
+Language: en  •  Topic: loans  •  Source: Access to Finance; EN-02
+INK-KB-EN-007 | Who is eligible for financing?
+Inkomoko focuses on entrepreneurs in forcibly displaced and host communities, including micro and small enterprises. The source does not specify complete eligibility criteria or required documents; contact the local Inkomoko team for an assessment.
+Language: en  •  Topic: eligibility  •  Source: Access to Finance; AM-04
+INK-KB-EN-008 | What is the interest rate or loan amount?
+The provided material does not specify current interest rates, loan limits, repayment schedules, or fees. Please confirm these directly with Inkomoko before making financial decisions.
+Language: en  •  Topic: interest  •  Source: Access to Finance; AM-04
+INK-KB-EN-009 | Does Inkomoko offer Sharia-compliant financing?
+The source describes non-interest financing in some operating areas, including Dadaab in Kenya. Availability in a particular location must be verified with the local office.
+Language: en  •  Topic: sharia  •  Source: Access to Finance; EN-02
+INK-KB-EN-010 | Which countries does Inkomoko operate in?
+The document lists Rwanda, Kenya, Ethiopia, South Sudan, and Chad. This is the footprint described in the supplied document and may change.
+Language: en  •  Topic: countries  •  Source: Regional Operations
+INK-KB-EN-011 | Where is Inkomoko located in Ethiopia?
+The source lists an Addis Ababa office at Messay Complex Building, 4th Floor, Namibia Road, Bole Sub-City, and regional offices in Assosa and Jigjiga. Verify the address and office hours before visiting.
+Language: en  •  Topic: ethiopia  •  Source: Operational Mechanics in Ethiopia; EN-03
+INK-KB-EN-012 | Does Inkomoko help with work permits?
+The source says Inkomoko supports work-permit facilitation and business formalization for refugee entrepreneurs in Ethiopia through partnerships. The exact process and availability should be confirmed locally.
+Language: en  •  Topic: permits  •  Source: Operational Mechanics in Ethiopia; EN-03
+INK-KB-EN-013 | Does Inkomoko help businesses find buyers?
+The source describes market-linkage work connecting entrepreneurs to wholesalers, institutional buyers, and wider supply chains. Availability varies by location and program.
+Language: en  •  Topic: market  •  Source: Market Linkages
+INK-KB-EN-014 | How can I apply for a loan or training?
+The provided document does not include an official application link, current contact details, or step-by-step enrollment procedure. Contact an Inkomoko office or its verified official channels for instructions.
+Language: en  •  Topic: apply  •  Source: Gap: application process
+INK-KB-AM-015 | ኢንኮሞኮ ምንድን ነው?
+ኢንኮሞኮ ለተፈናቀሉ ሰዎችና ለአስተናጋጅ ማህበረሰቦች ሥራ ፈጣሪዎች የፋይናንስ፣ የንግድ ሥልጠና፣ የምክር እና የገበያ ትስስር ድጋፍ የሚሰጥ ማህበራዊ ድርጅት ነው። በ2012 በሩዋንዳ ተመሠረተ።
+Language: am  •  Topic: identity  •  Source: AM-01
+INK-KB-AM-016 | የኢንኮሞኮ ተልዕኮ ምንድን ነው?
+የኢንኮሞኮ ተልዕኮ ሥራ ፈጣሪዎችን በፋይናንስ፣ በንግድ ክህሎት እና በገበያ ትስስር በመደገፍ ኢኮኖሚያዊ ተሳትፎን ማሳደግ ነው።
+Language: am  •  Topic: mission  •  Source: AM-01
+INK-KB-AM-017 | ኢንኮሞኮ ምን አገልግሎቶችን ይሰጣል?
+ኢንኮሞኮ የፋይናንስ ድጋፍ፣ የንግድ ሥልጠናና የግል ምክር፣ እንዲሁም የገበያ ትስስርና የፖሊሲ ድጋፍ ይሰጣል።
+Language: am  •  Topic: services  •  Source: AM-02
+INK-KB-AM-018 | ኢንኮሞኮ ብድር ይሰጣል?
+አዎ። በቀረበው ሰነድ መሠረት ለአነስተኛ ንግዶች የሥራ ማስኬጃ ፋይናንስ ይሰጣል። ወቅታዊ መስፈርቶችና የብድር ሁኔታዎች ከተቋሙ መረጋገጥ አለባቸው።
+Language: am  •  Topic: loans  •  Source: AM-02; AM-04
+INK-KB-AM-019 | ብድር ለማግኘት ምን መስፈርቶች አሉ?
+ሰነዱ ለተፈናቀሉ ሰዎችና ለአስተናጋጅ ማህበረሰቦች ሥራ ፈጣሪዎች ትኩረት እንደሚሰጥ ይገልጻል። ዝርዝር የብድር መስፈርቶች አልተጠቀሱም፤ ከአካባቢዎ የኢንኮሞኮ ቢሮ ያረጋግጡ።
+Language: am  •  Topic: eligibility  •  Source: AM-04
+INK-KB-AM-020 | የብድር ወለድ ስንት ነው?
+በቀረበው ሰነድ ወቅታዊ የወለድ መጠን፣ የብድር ገደብ ወይም የክፍያ ጊዜ አልተገለጸም። እባክዎ ከኢንኮሞኮ በቀጥታ ያረጋግጡ።
+Language: am  •  Topic: interest  •  Source: AM-04
+INK-KB-AM-021 | በኢትዮጵያ የኢንኮሞኮ ቢሮ የት ነው?
+ሰነዱ የአዲስ አበባ ቢሮን በቦሌ፣ ናሚቢያ መንገድ፣ ሜሳይ ኮምፕሌክስ 4ኛ ፎቅ እንደሚገኝ ይገልጻል። በአሶሳና በጅግጅጋም ቢሮዎች እንዳሉ ይጠቅሳል። ከመሄድዎ በፊት አድራሻውን ያረጋግጡ።
+Language: am  •  Topic: ethiopia  •  Source: AM-03
+INK-KB-AM-022 | ለብድር ወይም ለሥልጠና እንዴት ማመልከት እችላለሁ?
+የቀረበው ሰነድ የማመልከቻ አገናኝ ወይም ዝርዝር ሂደት አልያዘም። ትክክለኛ መመሪያ ለማግኘት ከኢንኮሞኮ ቢሮ ወይም ከተረጋገጠ ኦፊሴላዊ የመገናኛ መንገድ ይጠይቁ።
+Language: am  •  Topic: apply  •  Source: Gap: application process
+Pre-deployment verification
+Official application and onboarding steps, URLs and contacts
+Country-specific eligibility, document requirements, interest rates, fees, and repayment schedules
+Verified opening hours and office locations
+Updated product availability and supported languages
+Official sources and publication dates for impact metrics and regulatory claims
+Review of Amharic wording by a native-language editor
+
+Official Website FAQ Coverage
+Reviewed 9 October 2026 | Source: https://www.inkomoko.com/faq
+The accessible official FAQ page provided questions but not full answer text. The answers below come from the existing institutional research where supported; all records require editorial verification before public chatbot deployment.
+For Entrepreneurs
+Who can access Inkomoko’s support?
+Inkomoko supports entrepreneurs from forcibly displaced and host communities, including micro and small enterprises. Exact program eligibility depends on location and program.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+How do I apply for Inkomoko’s programs?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+Are there fees or costs for entrepreneurs?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+What types of businesses do Inkomoko entrepreneurs build?
+The supplied research describes small businesses in manufacturing, agriculture, retail supply chains and services. Specific supported sectors depend on the local program.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+How does Inkomoko support entrepreneurs with limited literacy or language skills?
+The supplied research mentions tailored business education and offline/digital learning formats, but does not confirm specific language or literacy accommodations.
+Status: partial context only | Official question source: https://www.inkomoko.com/faq
+How does Inkomoko address challenges for women entrepreneurs?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+Can refugees own and operate a business?
+Business ownership rights depend on national laws and applicable documentation. In Ethiopia, the source discusses refugee economic inclusion reforms and work-permit facilitation. Individual legal eligibility must be confirmed with appropriate authorities.
+Status: partial context only | Official question source: https://www.inkomoko.com/faq
+How does Inkomoko ensure fair access to its programs?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+For Partners & Donors
+Who are Inkomoko’s major partners and supporters?
+The supplied research names UNHCR, Mastercard Foundation, World Bank, Kiva and the Audacious Project among its partners and supporters. This list may not be current or exhaustive.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+How can my organization become a partner?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+What’s the impact of donations?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+How can I donate to Inkomoko?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+How are donations tracked?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+Does Inkomoko work only with displaced people?
+No. The supplied research says Inkomoko works with entrepreneurs in both forcibly displaced and host communities.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+About Inkomoko
+What does Inkomoko do?
+Inkomoko supports entrepreneurs through business education, advisory services, access to finance and market linkages.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+Where does Inkomoko operate?
+The supplied research lists Rwanda, Kenya, Ethiopia, South Sudan and Chad. Confirm current locations with Inkomoko.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+Is Inkomoko a nonprofit or private company?
+The supplied research describes Inkomoko as a social enterprise and nongovernmental organization; confirm the current legal status in the relevant jurisdiction.
+Status: partial context only | Official question source: https://www.inkomoko.com/faq
+What is Inkomoko’s relationship to African Entrepreneur Collective (AEC)?
+Inkomoko was originally known as African Entrepreneur Collective (AEC), according to the supplied research.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+How is Inkomoko funded?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+How does Inkomoko influence policy?
+The supplied research describes advocacy and partnerships to support business registration, market participation and economic inclusion for displaced entrepreneurs.
+Status: supported by existing draft | Official question source: https://www.inkomoko.com/faq
+What’s the biggest lesson Inkomoko has learned?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+Website Support & Navigation
+I can’t find my country—what should I do?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+I need help applying—who can I talk to?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+Is your website available in multiple languages?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq
+How can I stay updated?
+Official answer not retrievable. Refer to the Inkomoko team for verified guidance.
+Status: requires official answer | Official question source: https://www.inkomoko.com/faq

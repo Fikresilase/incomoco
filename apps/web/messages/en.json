@@ -151,6 +151,8 @@
       "negative": "Not helpful",
       "english": "English",
       "amharic": "Amharic",
+      "oromo": "Afaan Oromo",
+      "somali": "Somali",
       "text": "Text",
       "dictation": "Dictation",
       "voice": "Live talk",
@@ -221,6 +223,8 @@
       },
       "lang": {
         "am": "Amharic",
+        "om": "Afaan Oromo",
+        "so": "Somali",
         "en": "English",
         "mixed": "Mixed"
       },

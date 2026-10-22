@@ -7,6 +7,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.core.container import Container
+from app.core.db import get_db
 from app.core.security import ADMIN_COOKIE, SESSION_COOKIE, decode_admin_token
 
 limiter = Limiter(key_func=get_remote_address)
@@ -46,6 +47,7 @@ __all__ = [
     "SESSION_COOKIE",
     "AdminUser",
     "device_type_from",
+    "get_db",
     "get_container",
     "limiter",
     "parse_session_cookie",

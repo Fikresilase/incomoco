@@ -10,6 +10,7 @@ import {
   type Recorder,
 } from "@/lib/audio/recorder";
 import { errorMessage } from "@/lib/format";
+import type { Lang } from "@/lib/api";
 import { transcribe } from "../api";
 
 export const MAX_DICTATION_MS = 60_000;
@@ -21,12 +22,14 @@ export type DictationState = "idle" | "starting" | "recording" | "transcribing";
  * Tap to record, tap to stop. On stop the audio is encoded as 16 kHz mono WAV,
  * sent to `POST /voice/transcribe`, and the text is handed to `onText` (never auto-sent).
  */
-export function useDictation(onText: (text: string) => void, conversationId?: string | null) {
+export function useDictation(onText: (text: string) => void, conversationId?: string | null, lang?: Lang) {
   const t = useTranslations("voice");
   const conversationRef = useRef(conversationId);
+  const langRef = useRef(lang);
   useEffect(() => {
     conversationRef.current = conversationId;
-  }, [conversationId]);
+    langRef.current = lang;
+  }, [conversationId, lang]);
   const [state, setState] = useState<DictationState>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
   const recorderRef = useRef<Recorder | null>(null);
@@ -55,6 +58,7 @@ export function useDictation(onText: (text: string) => void, conversationId?: st
       abortRef.current = controller;
       const { text } = await transcribe(wav, {
         conversationId: conversationRef.current,
+        languageHint: langRef.current,
         signal: controller.signal,
       });
       if (text.trim()) onText(text);

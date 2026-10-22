@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { streamChat, isApiError } from "@/lib/api";
+import type { Lang } from "@/lib/api";
 import { errorMessage } from "@/lib/format";
 import { chatKeys, getConversation } from "../api";
 import { LOCAL_ID_PREFIX, fromServer, type UIMessage } from "../types";
@@ -29,6 +30,7 @@ function syncUrl(id: string | null) {
 interface SendOptions {
   text: string;
   modality: "text" | "dictation";
+  lang: Lang;
 }
 
 /**
@@ -82,7 +84,7 @@ export function useChat() {
   );
 
   const run = useCallback(
-    async ({ text, modality }: SendOptions, regenerate: boolean) => {
+    async ({ text, modality, lang }: SendOptions, regenerate: boolean) => {
       if (abortRef.current) return;
       const startConversation = conversationId;
       const now = new Date().toISOString();
@@ -100,6 +102,7 @@ export function useChat() {
         sources: [],
         feedback: null,
         has_audio: false,
+        learning_recommendations: [],
         created_at: now,
         streaming: true,
         error: null,
@@ -148,6 +151,7 @@ export function useChat() {
             message: text,
             conversation_id: startConversation,
             modality,
+            lang,
             regenerate,
           },
           controller.signal
@@ -183,6 +187,8 @@ export function useChat() {
               streaming: false,
               status: "complete",
             });
+          } else if (ev.event === "learning_recommendations") {
+            patch(assistantId, { learning_recommendations: ev.data.recommendations });
           } else if (ev.event === "error") {
             if (frame !== null) cancelAnimationFrame(frame);
             flush();
@@ -224,10 +230,10 @@ export function useChat() {
   );
 
   const send = useCallback(
-    (text: string, modality: "text" | "dictation" = "text") => {
+    (text: string, modality: "text" | "dictation" = "text", lang: Lang = "en") => {
       const trimmed = text.trim();
       if (!trimmed || trimmed.length > MAX_MESSAGE_LENGTH) return;
-      void run({ text: trimmed, modality }, false);
+      void run({ text: trimmed, modality, lang }, false);
     },
     [run]
   );
@@ -243,7 +249,7 @@ export function useChat() {
     }
     const modality = lastUser.modality === "dictation" ? "dictation" : "text";
     // `message` is ignored with regenerate: true, but we send the last question to satisfy validation.
-    void run({ text: lastUser.content || ".", modality }, true);
+    void run({ text: lastUser.content || ".", modality, lang: lastUser.lang ?? "en" }, true);
   }, [conversationId, messages, run]);
 
   /** Retry a message whose request failed before the server accepted it. */
@@ -260,7 +266,7 @@ export function useChat() {
           (_, i) => i !== idx && !(i === userIdx && prev[i].id.startsWith(LOCAL_ID_PREFIX))
         );
       });
-      void run({ text, modality }, false);
+      void run({ text, modality, lang: failed.lang ?? "en" }, false);
     },
     [run]
   );

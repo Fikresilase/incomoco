@@ -85,9 +85,13 @@ class FakeReranker:
 class FakeSTT:
     """Deterministic by clip length: tiny = silence, ~2 s+ = a greeting, otherwise a question."""
 
-    async def transcribe(self, audio: bytes, audio_format: str = "wav", context=None) -> str:
+    async def transcribe(self, audio: bytes, audio_format: str = "wav", context=None, *, language_hint=None) -> str:
         if len(audio) <= 1000:
             return ""
+        if language_hint == "om":
+            return "Inkomoko tajaajila maalii kenna?"
+        if language_hint == "so":
+            return "Adeeg noocee ah ayay Inkomoko bixisaa?"
         if len(audio) >= 64_000:
             return "Hello, how are you?"
         return "What services does Inkomoko offer?"
@@ -98,6 +102,9 @@ class FakeTTS:
     voice = "fake"
     audio_format = "wav"
     content_type = "audio/wav"
+
+    def supports(self, lang: str) -> bool:
+        return lang in {"am", "om", "so", "en"}
 
     async def synthesize(self, text: str, lang: str) -> bytes:
         return pcm_to_wav(bytes(4800))  # 0.1 s of silence at 24 kHz

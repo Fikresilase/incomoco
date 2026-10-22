@@ -1,4 +1,5 @@
 import io
+from datetime import timedelta
 
 from minio import Minio
 from minio.error import S3Error
@@ -41,3 +42,6 @@ class MinioBlobStore:
         except S3Error as exc:
             if exc.code != "NoSuchKey":
                 raise
+
+    def presigned_get(self, key: str, ttl_seconds: int) -> str:
+        return self._client.presigned_get_object(self._bucket, key, expires=timedelta(seconds=ttl_seconds))

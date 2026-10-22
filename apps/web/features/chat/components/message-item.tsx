@@ -9,6 +9,7 @@ import { SourceChips } from "./citations";
 import { Markdown } from "./markdown";
 import { MessageActions } from "./message-actions";
 import type { UIMessage } from "../types";
+import { LearningRecommendations } from "./learning-recommendations";
 
 function TypingDots() {
   return (
@@ -138,6 +139,8 @@ export const AssistantMessage = memo(function AssistantMessage({
         {SHOW_SOURCES && !message.streaming && message.sources.length > 0 && (
           <SourceChips sources={message.sources} />
         )}
+
+        {!message.streaming && <LearningRecommendations items={message.learning_recommendations} messageId={message.id} />}
 
         {!message.streaming && !message.retry && !empty && (
           <div className="mt-2">

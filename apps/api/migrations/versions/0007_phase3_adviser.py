@@ -1,0 +1,41 @@
+"""phase 3 adviser intelligence foundation"""
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from alembic import op
+
+revision = "3b7f1a2c9d44"
+down_revision = "2a6e9c4b7d11"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+def upgrade() -> None:
+    op.add_column("entrepreneur_profiles", sa.Column("is_demo", sa.Boolean(), server_default=sa.text("false"), nullable=False))
+    op.add_column("entrepreneur_profiles", sa.Column("demo_key", sa.String(40), nullable=True))
+    op.create_index("uq_entrepreneur_profile_demo_key", "entrepreneur_profiles", ["demo_key"], unique=True)
+    op.create_table("business_goals", sa.Column("id", sa.UUID(), nullable=False), sa.Column("profile_id", sa.UUID(), nullable=False), sa.Column("title", sa.String(240), nullable=False), sa.Column("description", sa.Text(), nullable=False), sa.Column("category", sa.String(80), nullable=False), sa.Column("status", sa.String(16), server_default="active", nullable=False), sa.Column("priority", sa.String(16), server_default="medium", nullable=False), sa.Column("target_date", sa.DateTime(timezone=True)), sa.Column("source", sa.String(32), server_default="user", nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False), sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False), sa.Column("completed_at", sa.DateTime(timezone=True)), sa.ForeignKeyConstraint(["profile_id"], ["entrepreneur_profiles.id"], ondelete="CASCADE"), sa.PrimaryKeyConstraint("id"), sa.CheckConstraint("status IN ('active','achieved','paused','cancelled')", name="ck_business_goal_status"))
+    op.create_index("ix_business_goal_profile_status", "business_goals", ["profile_id", "status"])
+    op.create_table("business_actions", sa.Column("id", sa.UUID(), nullable=False), sa.Column("profile_id", sa.UUID(), nullable=False), sa.Column("goal_id", sa.UUID()), sa.Column("skill_id", sa.UUID()), sa.Column("title", sa.String(240), nullable=False), sa.Column("description", sa.Text(), nullable=False), sa.Column("action_type", sa.String(24), server_default="do", nullable=False), sa.Column("status", sa.String(16), server_default="recommended", nullable=False), sa.Column("priority", sa.String(16), server_default="medium", nullable=False), sa.Column("due_date", sa.DateTime(timezone=True)), sa.Column("source", sa.String(32), server_default="system", nullable=False), sa.Column("started_at", sa.DateTime(timezone=True)), sa.Column("completed_at", sa.DateTime(timezone=True)), sa.Column("follow_up_at", sa.DateTime(timezone=True)), sa.ForeignKeyConstraint(["profile_id"], ["entrepreneur_profiles.id"], ondelete="CASCADE"), sa.ForeignKeyConstraint(["goal_id"], ["business_goals.id"], ondelete="SET NULL"), sa.ForeignKeyConstraint(["skill_id"], ["learning_skills.id"], ondelete="SET NULL"), sa.PrimaryKeyConstraint("id"), sa.CheckConstraint("action_type IN ('learn','do','review','talk_to_advisor')", name="ck_business_action_type"), sa.CheckConstraint("status IN ('recommended','started','completed','skipped','needs_help')", name="ck_business_action_status"))
+    op.create_index("ix_business_action_profile_status", "business_actions", ["profile_id", "status"])
+    op.create_table("learning_progress", sa.Column("id", sa.UUID(), nullable=False), sa.Column("profile_id", sa.UUID(), nullable=False), sa.Column("skill_id", sa.UUID(), nullable=False), sa.Column("resource_id", sa.UUID(), nullable=False), sa.Column("status", sa.String(16), server_default="not_started", nullable=False), sa.Column("completion_evidence", sa.Text()), sa.Column("started_at", sa.DateTime(timezone=True)), sa.Column("completed_at", sa.DateTime(timezone=True)), sa.Column("last_activity_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False), sa.ForeignKeyConstraint(["profile_id"], ["entrepreneur_profiles.id"], ondelete="CASCADE"), sa.ForeignKeyConstraint(["skill_id"], ["learning_skills.id"], ondelete="CASCADE"), sa.ForeignKeyConstraint(["resource_id"], ["learning_resources.id"], ondelete="CASCADE"), sa.PrimaryKeyConstraint("id"))
+    op.create_index("uq_learning_progress_profile_resource", "learning_progress", ["profile_id", "resource_id"], unique=True)
+    op.create_table("skill_evidence", sa.Column("id", sa.UUID(), nullable=False), sa.Column("profile_id", sa.UUID(), nullable=False), sa.Column("skill_id", sa.UUID(), nullable=False), sa.Column("evidence_type", sa.String(32), nullable=False), sa.Column("result", sa.String(16), nullable=False), sa.Column("source_reference", sa.String(240)), sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False), sa.ForeignKeyConstraint(["profile_id"], ["entrepreneur_profiles.id"], ondelete="CASCADE"), sa.ForeignKeyConstraint(["skill_id"], ["learning_skills.id"], ondelete="CASCADE"), sa.PrimaryKeyConstraint("id"))
+    op.create_index("ix_skill_evidence_profile_skill", "skill_evidence", ["profile_id", "skill_id", "created_at"])
+    personas = [("hana", "Hana", "Hana Coffee & Snacks", "coffee shop", "operating", "am", "cash shortage", "Improve monthly profit", "audio"), ("mohammed", "Mohammed", "Mohammed Grocery", "grocery shop", "operating", "om", "inventory loss", "Reduce stock losses", "mixed"), ("aster", "Aster", "Aster Beauty Salon", "beauty salon", "growing", "am", "customer retention", "Increase repeat customers", "text"), ("bekele", "Bekele", "Bekele Clothing", "clothing shop", "operating", "am", "pricing", "Improve margin", "mixed"), ("mulu", "Mulu", "Mulu Catering", "catering", "startup", "am", "record keeping", "Improve record keeping", "text")]
+    for key, name, business, typ, stage, lang, challenge, goal, fmt in personas:
+        op.execute(sa.text("INSERT INTO entrepreneur_profiles (id, identity_type, preferred_language, business_name, business_description, business_type, business_stage, primary_business_challenge, learning_goal, preferred_learning_format, experience_level, onboarding_completed, is_demo, demo_key) VALUES (gen_random_uuid(), 'guest', :lang, :business, :name, :typ, :stage, :challenge, :goal, :fmt, 'beginner', true, true, :key) ON CONFLICT (demo_key) DO NOTHING").bindparams(key=key, name=name, business=business, typ=typ, stage=stage, lang=lang, challenge=challenge, goal=goal, fmt=fmt))
+    op.execute(sa.text("INSERT INTO business_goals (id, profile_id, title, description, category, priority, source) SELECT gen_random_uuid(), id, learning_goal, primary_business_challenge, 'business', 'high', 'demo' FROM entrepreneur_profiles WHERE is_demo AND NOT EXISTS (SELECT 1 FROM business_goals g WHERE g.profile_id = entrepreneur_profiles.id)"))
+    op.execute(sa.text("INSERT INTO business_actions (id, profile_id, goal_id, skill_id, title, description, action_type, priority, source) SELECT gen_random_uuid(), p.id, g.id, s.id, CASE p.demo_key WHEN 'hana' THEN 'Record today''s expenses' WHEN 'mohammed' THEN 'Count current stock' WHEN 'aster' THEN 'Follow up with one customer' WHEN 'bekele' THEN 'Review one product margin' ELSE 'Write down today''s sales and expenses' END, 'One small business action for today.', 'do', 'high', 'demo' FROM entrepreneur_profiles p JOIN business_goals g ON g.profile_id = p.id LEFT JOIN learning_skills s ON s.key = CASE WHEN p.demo_key = 'hana' THEN 'record_keeping' WHEN p.demo_key = 'mohammed' THEN 'inventory' WHEN p.demo_key = 'bekele' THEN 'pricing_profit' ELSE 'record_keeping' END WHERE p.is_demo AND NOT EXISTS (SELECT 1 FROM business_actions a WHERE a.profile_id = p.id)"))
+
+def downgrade() -> None:
+    op.drop_index("ix_skill_evidence_profile_skill", table_name="skill_evidence")
+    op.drop_table("skill_evidence")
+    op.drop_index("uq_learning_progress_profile_resource", table_name="learning_progress")
+    op.drop_table("learning_progress")
+    op.drop_index("ix_business_action_profile_status", table_name="business_actions")
+    op.drop_table("business_actions")
+    op.drop_index("ix_business_goal_profile_status", table_name="business_goals")
+    op.drop_table("business_goals")
+    op.drop_index("uq_entrepreneur_profile_demo_key", table_name="entrepreneur_profiles")
+    op.drop_column("entrepreneur_profiles", "demo_key")
+    op.drop_column("entrepreneur_profiles", "is_demo")

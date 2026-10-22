@@ -2,7 +2,7 @@
  * Types mirroring docs/api-contract.md (v1). Keep in sync with the contract.
  */
 
-export type Lang = "am" | "en";
+export type Lang = "am" | "om" | "so" | "en";
 export type Modality = "text" | "dictation" | "voice";
 
 export interface Source {
@@ -38,7 +38,19 @@ export interface Message {
   feedback: Rating | null;
   /** TTS audio already stored */
   has_audio: boolean;
+  learning_recommendations: LearningRecommendation[];
   created_at: string;
+}
+
+export interface LearningRecommendation {
+  resource_id: string;
+  skill_key: string | null;
+  title: string;
+  description: string;
+  resource_type: "document" | "guideline" | "audio" | "video" | "text_lesson";
+  language: Lang;
+  difficulty_level: string;
+  duration_seconds: number | null;
 }
 
 export interface ConversationSummary {
@@ -66,7 +78,7 @@ export interface KbDocument {
   filename: string;
   mime: string;
   size_bytes: number;
-  lang: "am" | "en" | "mixed" | null;
+  lang: "am" | "om" | "so" | "en" | "mixed" | null;
   page_count: number | null;
   status: DocumentStatus;
   chunk_count: number;
@@ -82,6 +94,7 @@ export interface ChatRequest {
   message: string;
   conversation_id: string | null;
   modality: "text" | "dictation";
+  lang?: Lang;
   regenerate: boolean;
 }
 
@@ -112,6 +125,7 @@ export type ChatStreamEvent =
   | { event: "sources"; data: ChatSourcesEvent }
   | { event: "delta"; data: ChatDeltaEvent }
   | { event: "done"; data: ChatDoneEvent }
+  | { event: "learning_recommendations"; data: { recommendations: LearningRecommendation[] } }
   | { event: "error"; data: ApiErrorEvent };
 
 export interface FeedbackRequest {
@@ -132,7 +146,7 @@ export interface SpeakRequest {
 
 /** Client → server text frames on WS /voice/live (binary frames carry WAV utterances). */
 export type LiveClientMessage =
-  | { type: "session.start"; conversation_id: string | null }
+  | { type: "session.start"; conversation_id: string | null; lang?: Lang }
   | { type: "interrupt" }
   | { type: "session.end" };
 
@@ -197,7 +211,7 @@ export interface AnalyticsSummary {
   timeseries: { date: string; conversations: number; messages: number }[];
   feedback_timeseries: { date: string; positive: number; negative: number }[];
   /** User messages */
-  languages: { am: number; en: number };
+  languages: { am: number; om: number; so: number; en: number };
   /** User messages */
   modalities: { text: number; dictation: number; voice: number };
   /** Sessions */

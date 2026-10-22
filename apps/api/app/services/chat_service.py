@@ -15,10 +15,11 @@ from app.core.container import Container
 from app.core.db import SessionFactory
 from app.domain.models import ChatTurn, Lang, RetrievalResult, RetrievedChunk, Source
 from app.rag.generation.answer import AnswerStream
-from app.rag.language import detect_lang
+from app.rag.language import coerce_lang, detect_lang
 from app.rag.router import TurnRouter
 from app.repositories.chat_repo import ChatRepository
 from app.repositories.document_repo import DocumentRepository
+from app.services.entrepreneur import EntrepreneurContextService
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class TurnContext:
     lang: Lang
     modality: str
     user_created_at: datetime
+    entrepreneur_context: str = ""
 
 
 def _snippet(text: str, limit: int = 300) -> str:
@@ -76,6 +78,7 @@ class ChatService:
         message: str | None,
         conversation_id: uuid.UUID | None,
         modality: str,
+        lang: str | None = None,
         regenerate: bool = False,
         device_type: str | None = None,
     ) -> TurnContext:
@@ -99,15 +102,19 @@ class ChatService:
                 raise NotFoundError("Nothing to regenerate")
         else:
             text = (message or "").strip()
+            requested_lang = coerce_lang(lang)
             if conversation_id is not None:
                 conversation = await repo.get_conversation(conversation_id, session_id)
                 if conversation is None:
                     raise NotFoundError("Conversation not found")
             else:
-                conversation = await repo.create_conversation(session_id, text)
-            user_message = await repo.add_user_message(conversation.id, text, detect_lang(text), modality)
+                conversation = await repo.create_conversation(session_id, text, requested_lang or detect_lang(text))
+            user_message = await repo.add_user_message(
+                conversation.id, text, requested_lang or conversation.lang or detect_lang(text), modality
+            )
 
-        await repo.touch_conversation(conversation.id)
+        profile_context = await EntrepreneurContextService().context_for_guest(db, session_id)
+        await repo.touch_conversation(conversation.id, lang=coerce_lang(lang))
         await db.commit()
         return TurnContext(
             conversation_id=conversation.id,
@@ -117,6 +124,7 @@ class ChatService:
             lang=user_message.lang,  # type: ignore[arg-type]
             modality=user_message.modality,
             user_created_at=user_message.created_at,
+            entrepreneur_context=profile_context.to_prompt(),
         )
 
     async def load_history(self, ctx: TurnContext) -> list[ChatTurn]:
@@ -197,7 +205,8 @@ class ChatService:
             yield "sources", {"sources": [x.to_public() for x in sources]}
 
             async for delta in answer.stream(
-                ctx.question, history, retrieval.reranked, ctx.lang, voice=voice
+                ctx.question, history, retrieval.reranked, ctx.lang, voice=voice,
+                entrepreneur_context=ctx.entrepreneur_context,
             ):
                 if first_token_ms is None:
                     first_token_ms = round((time.perf_counter() - started) * 1000)

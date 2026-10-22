@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useEffect,
   type ComponentType,
   type ReactNode,
 } from "react";
@@ -25,9 +26,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
+import { useLocaleSwitch } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 import { useChat } from "../hooks/use-chat";
 import { useReadAloud } from "../hooks/use-read-aloud";
+import { EntrepreneurProfilePanel } from "@/features/entrepreneur/components/profile-panel";
 import type { ComposerToolsContext } from "../types";
 import { Composer, type ComposerHandle } from "./composer";
 import { ConversationList } from "./conversation-list";
@@ -79,6 +82,7 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
   const chat = useChat();
   const readAloud = useReadAloud();
   const online = useOnlineStatus();
+  const { locale } = useLocaleSwitch();
   const composerRef = useRef<ComposerHandle>(null);
 
   const [input, setInput] = useState("");
@@ -88,13 +92,20 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
 
   const { selectConversation, send, refreshAfterVoice, conversationId } = chat;
 
+  useEffect(() => {
+    const welcomeMessage = sessionStorage.getItem("inkomoko_welcome_message");
+    if (!welcomeMessage?.trim()) return;
+    sessionStorage.removeItem("inkomoko_welcome_message");
+    send(welcomeMessage, "text", locale);
+  }, [locale, send]);
+
   const handleInputChange = (value: string) => {
     setInput(value);
     if (!value.trim()) setFromDictation(false);
   };
 
   const submit = () => {
-    send(input, fromDictation ? "dictation" : "text");
+    send(input, fromDictation ? "dictation" : "text", locale);
     setInput("");
     setFromDictation(false);
   };
@@ -134,10 +145,11 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
     () => ({
       conversationId,
       disabled: chat.streaming || !online,
+      lang: locale,
       insertText,
       onLiveTalkEnded: refreshAfterVoice,
     }),
-    [conversationId, chat.streaming, online, insertText, refreshAfterVoice]
+    [conversationId, chat.streaming, online, insertText, refreshAfterVoice, locale]
   );
 
   const sidebarBody = (
@@ -159,6 +171,7 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
         />
       </nav>
       <div className="border-t border-border px-5 py-3">
+        <EntrepreneurProfilePanel />
         <Link
           href="/admin"
           className="text-xs font-semibold text-muted-foreground hover:text-secondary focus-visible:underline"
@@ -199,7 +212,7 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
       </div>
     );
   } else if (showEmpty) {
-    body = <EmptyState onPick={(text) => send(text)} disabled={!online} />;
+    body = <EmptyState onPick={(text) => send(text, "text", locale)} disabled={!online} />;
   } else {
     body = (
       <Thread

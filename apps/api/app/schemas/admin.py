@@ -22,7 +22,7 @@ class DocumentOut(BaseModel):
     filename: str
     mime: str
     size_bytes: int
-    lang: Literal["am", "en", "mixed"] | None
+    lang: Literal["am", "om", "so", "en", "mixed"] | None
     page_count: int | None
     status: Literal["queued", "processing", "ready", "failed", "deleting", "deleted"]
     chunk_count: int
@@ -95,7 +95,7 @@ class AnalyticsSummary(BaseModel):
     kpis: Kpis
     timeseries: list[DayCount]
     feedback_timeseries: list[DayFeedback]
-    languages: dict[Literal["am", "en"], int]
+    languages: dict[Literal["am", "om", "so", "en"], int]
     modalities: dict[Literal["text", "dictation", "voice"], int]
     devices: dict[Literal["mobile", "desktop", "unknown"], int]
     top_documents: list[DocCitations]
@@ -110,7 +110,7 @@ class GapTopic(BaseModel):
 
 class UnansweredQuestion(BaseModel):
     question: str
-    lang: Literal["am", "en"]
+    lang: Literal["am", "om", "so", "en"]
     created_at: str
 
 

@@ -1,7 +1,10 @@
 import { NetworkError, isApiError } from "@/lib/api";
 
 function intlLocale(locale: string) {
-  return locale === "am" ? "am-ET" : "en-US";
+  if (locale === "am") return "am-ET";
+  if (locale === "om") return "om-ET";
+  if (locale === "so") return "so-SO";
+  return "en-US";
 }
 
 export function formatDateTime(iso: string, locale: string): string {

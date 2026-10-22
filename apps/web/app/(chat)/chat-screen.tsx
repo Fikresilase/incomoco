@@ -10,10 +10,12 @@ function VoiceTools({ ctx }: { ctx: ComposerToolsContext }) {
       <DictationButton
         onText={ctx.insertText}
         conversationId={ctx.conversationId}
+        lang={ctx.lang}
         disabled={ctx.disabled}
       />
       <LiveTalkButton
         conversationId={ctx.conversationId}
+        lang={ctx.lang}
         disabled={ctx.disabled}
         onEnded={ctx.onLiveTalkEnded}
       />

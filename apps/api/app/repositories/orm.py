@@ -54,15 +54,196 @@ class ChatSession(Base):
     last_seen_at: Mapped[datetime] = _ts()
 
 
+class EntrepreneurProfile(Base):
+    __tablename__ = "entrepreneur_profiles"
+    __table_args__ = (
+        CheckConstraint("identity_type IN ('registered','guest')", name="ck_entrepreneur_identity_type"),
+        CheckConstraint("preferred_language IN ('am','om','so','en')", name="ck_entrepreneur_language"),
+        CheckConstraint("business_stage IN ('idea','startup','operating','growing') OR business_stage IS NULL", name="ck_entrepreneur_stage"),
+        CheckConstraint("preferred_learning_format IN ('text','audio','video','mixed') OR preferred_learning_format IS NULL", name="ck_entrepreneur_format"),
+        CheckConstraint("experience_level IN ('beginner','intermediate','advanced','unknown') OR experience_level IS NULL", name="ck_entrepreneur_experience"),
+        Index("uq_entrepreneur_profile_session", "session_id", unique=True),
+        Index("ix_entrepreneur_profile_user", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    identity_type: Mapped[str] = mapped_column(String(16), nullable=False, default="guest", server_default="guest")
+    preferred_language: Mapped[str] = mapped_column(String(8), nullable=False, default="en", server_default="en")
+    business_name: Mapped[str | None] = mapped_column(String(200))
+    business_description: Mapped[str | None] = mapped_column(Text)
+    business_type: Mapped[str | None] = mapped_column(String(120))
+    business_stage: Mapped[str | None] = mapped_column(String(32))
+    business_location: Mapped[str | None] = mapped_column(String(160))
+    primary_business_challenge: Mapped[str | None] = mapped_column(String(240))
+    learning_goal: Mapped[str | None] = mapped_column(String(240))
+    preferred_learning_format: Mapped[str | None] = mapped_column(String(16))
+    experience_level: Mapped[str | None] = mapped_column(String(16))
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    demo_key: Mapped[str | None] = mapped_column(String(40), unique=True)
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
+class BusinessGoal(Base):
+    __tablename__ = "business_goals"
+    __table_args__ = (CheckConstraint("status IN ('active','achieved','paused','cancelled')", name="ck_business_goal_status"), Index("ix_business_goal_profile_status", "profile_id", "status"))
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    category: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="medium", server_default="medium")
+    target_date: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False, default="user", server_default="user")
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+    completed_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class BusinessAction(Base):
+    __tablename__ = "business_actions"
+    __table_args__ = (CheckConstraint("action_type IN ('learn','do','review','talk_to_advisor')", name="ck_business_action_type"), CheckConstraint("status IN ('recommended','started','completed','skipped','needs_help')", name="ck_business_action_status"), Index("ix_business_action_profile_status", "profile_id", "status"))
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    goal_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("business_goals.id", ondelete="SET NULL"))
+    skill_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_skills.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    action_type: Mapped[str] = mapped_column(String(24), nullable=False, default="do", server_default="do")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="recommended", server_default="recommended")
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="medium", server_default="medium")
+    due_date: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False, default="system", server_default="system")
+    started_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    completed_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    follow_up_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    target_count: Mapped[int | None] = mapped_column(Integer)
+    progress_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    progress_unit: Mapped[str | None] = mapped_column(String(32))
+    last_progress_date: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class AdviserQueueItem(Base):
+    __tablename__ = "adviser_queue_items"
+    __table_args__ = (Index("ix_adviser_queue_status_priority", "status", "priority"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    action_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("business_actions.id", ondelete="SET NULL"))
+    reason: Mapped[str] = mapped_column(String(80), nullable=False)
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="medium", server_default="medium")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open", server_default="open")
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+    resolved_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class LearningProgress(Base):
+    __tablename__ = "learning_progress"
+    __table_args__ = (Index("uq_learning_progress_profile_resource", "profile_id", "resource_id", unique=True),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    skill_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_skills.id", ondelete="CASCADE"), nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="CASCADE"), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="not_started", server_default="not_started")
+    completion_evidence: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    completed_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    last_activity_at: Mapped[datetime] = _ts()
+
+
+class SkillEvidence(Base):
+    __tablename__ = "skill_evidence"
+    __table_args__ = (Index("ix_skill_evidence_profile_skill", "profile_id", "skill_id", "created_at"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    skill_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_skills.id", ondelete="CASCADE"), nullable=False)
+    evidence_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    result: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_reference: Mapped[str | None] = mapped_column(String(240))
+    created_at: Mapped[datetime] = _ts()
+
+
+class BeneficiaryLink(Base):
+    __tablename__ = "beneficiary_links"
+    __table_args__ = (
+        CheckConstraint("verification_status IN ('pending','verified','revoked')", name="ck_beneficiary_link_status"),
+        Index("uq_beneficiary_external", "external_system", "external_id", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    external_system: Mapped[str] = mapped_column(String(80), nullable=False)
+    external_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    verification_status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    last_synced_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    source_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"))
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
+class LearningSkill(Base):
+    __tablename__ = "learning_skills"
+    __table_args__ = (Index("uq_learning_skill_key", "key", unique=True), Index("ix_learning_skill_active", "active"))
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    key: Mapped[str] = mapped_column(String(80), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    category: Mapped[str] = mapped_column(String(80), nullable=False)
+    level: Mapped[str] = mapped_column(String(32), nullable=False, default="beginner", server_default="beginner")
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
+class LearningResource(Base):
+    __tablename__ = "learning_resources"
+    __table_args__ = (
+        CheckConstraint("resource_type IN ('document','guideline','audio','video','text_lesson')", name="ck_learning_resource_type"),
+        CheckConstraint("language IN ('am','om','so','en')", name="ck_learning_resource_language"),
+        CheckConstraint("approval_status IN ('draft','review','approved','archived')", name="ck_learning_resource_status"),
+        Index("ix_learning_resource_public", "skill_id", "language", "approval_status", "is_active"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    skill_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_skills.id", ondelete="RESTRICT"), nullable=False)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    resource_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    language: Mapped[str] = mapped_column(String(8), nullable=False)
+    difficulty_level: Mapped[str] = mapped_column(String(32), nullable=False, default="beginner", server_default="beginner")
+    media_url: Mapped[str | None] = mapped_column(Text)
+    storage_reference: Mapped[str | None] = mapped_column(Text)
+    document_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"))
+    source_reference: Mapped[str | None] = mapped_column(Text)
+    content_owner: Mapped[str | None] = mapped_column(String(160))
+    version: Mapped[str | None] = mapped_column(String(40))
+    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    approval_status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft", server_default="draft")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
-    __table_args__ = (Index("ix_conversations_session_updated", "session_id", text("updated_at DESC")),)
+    __table_args__ = (
+        CheckConstraint("lang IN ('am','om','so','en')", name="ck_conversations_lang"),
+        Index("ix_conversations_session_updated", "session_id", text("updated_at DESC")),
+    )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(80), nullable=False)
+    lang: Mapped[str] = mapped_column(String(8), nullable=False, default="en", server_default="en")
     created_at: Mapped[datetime] = _ts()
     updated_at: Mapped[datetime] = _ts()
 
@@ -75,7 +256,7 @@ class Message(Base):
     __tablename__ = "messages"
     __table_args__ = (
         CheckConstraint("role IN ('user','assistant')", name="ck_messages_role"),
-        CheckConstraint("lang IN ('am','en')", name="ck_messages_lang"),
+        CheckConstraint("lang IN ('am','om','so','en')", name="ck_messages_lang"),
         CheckConstraint("modality IN ('text','dictation','voice')", name="ck_messages_modality"),
         CheckConstraint("status IN ('complete','interrupted','error')", name="ck_messages_status"),
         Index("ix_messages_conversation_created", "conversation_id", "created_at"),
@@ -88,10 +269,11 @@ class Message(Base):
     )
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    lang: Mapped[str] = mapped_column(String(2), nullable=False, default="en")
+    lang: Mapped[str] = mapped_column(String(8), nullable=False, default="en")
     modality: Mapped[str] = mapped_column(String(16), nullable=False, default="text")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="complete")
     no_answer: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    learning_recommendations: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="'[]'::jsonb")
     first_token_ms: Mapped[int | None] = mapped_column(Integer)
     latency_ms: Mapped[int | None] = mapped_column(Integer)
     tokens_in: Mapped[int | None] = mapped_column(Integer)
@@ -167,8 +349,10 @@ class MessageAudio(Base):
     )
     storage_key: Mapped[str] = mapped_column(Text, nullable=False)
     format: Mapped[str] = mapped_column(String(8), nullable=False, default="wav")
+    lang: Mapped[str] = mapped_column(String(8), nullable=False, default="en", server_default="en")
     voice: Mapped[str] = mapped_column(String(64), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
+    text_hash: Mapped[str | None] = mapped_column(String(64))
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = _ts()
 
@@ -180,7 +364,7 @@ class Document(Base):
             "status IN ('queued','processing','ready','failed','deleting','deleted')",
             name="ck_documents_status",
         ),
-        CheckConstraint("lang IN ('am','en','mixed')", name="ck_documents_lang"),
+        CheckConstraint("lang IN ('am','om','so','en','mixed')", name="ck_documents_lang"),
         Index("ix_documents_status", "status"),
         Index(
             "uq_documents_checksum_active",
@@ -249,5 +433,19 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_type: Mapped[str | None] = mapped_column(String(32))
     entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = _ts()
+
+
+class LearningEvent(Base):
+    __tablename__ = "learning_events"
+    __table_args__ = (Index("uq_learning_event_dedupe", "event_type", "message_id", "resource_id", unique=True), Index("ix_learning_event_created", "created_at"))
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="SET NULL"))
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("conversations.id", ondelete="SET NULL"))
+    message_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id", ondelete="SET NULL"))
+    resource_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="SET NULL"))
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = _ts()

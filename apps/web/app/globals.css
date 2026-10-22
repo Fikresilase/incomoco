@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-montserrat), var(--font-ethiopic), sans-serif;
-  --font-heading: var(--font-montserrat), var(--font-ethiopic), sans-serif;
+  --font-sans: Arial, "Noto Sans Ethiopic", sans-serif;
+  --font-heading: Arial, "Noto Sans Ethiopic", sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);

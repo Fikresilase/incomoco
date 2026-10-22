@@ -5,7 +5,7 @@
   "scripts": {
     "vad-assets": "bun scripts/copy-vad-assets.mjs",
     "dev": "bun scripts/copy-vad-assets.mjs && next dev",
-    "build": "bun scripts/copy-vad-assets.mjs && next build",
+    "build": "bun scripts/copy-vad-assets.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"

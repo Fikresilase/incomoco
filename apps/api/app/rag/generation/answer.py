@@ -17,9 +17,12 @@ class AnswerStream:
         self.usage = LLMUsage()
 
     async def stream(
-        self, question: str, history: list[ChatTurn], chunks: list[RetrievedChunk], lang: Lang, *, voice: bool
+        self, question: str, history: list[ChatTurn], chunks: list[RetrievedChunk], lang: Lang, *, voice: bool,
+        entrepreneur_context: str = ""
     ) -> AsyncIterator[str]:
-        messages = build_answer_messages(question, history, chunks, lang, voice=voice)
+        messages = build_answer_messages(
+            question, history, chunks, lang, voice=voice, entrepreneur_context=entrepreneur_context
+        )
         buffer = ""
         deciding = True
         async for delta in self._llm.stream(messages, temperature=self._temperature, usage=self.usage):

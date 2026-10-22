@@ -1,19 +1,25 @@
 import io
 
 import docx
+import pytest
 
+from app.adapters.openrouter.speech import OpenRouterTTS
 from app.domain.models import LLMUsage
 from app.rag.generation.answer import AnswerStream
 from app.rag.generation.speech_text import SentenceSplitter, split_sentences, to_speakable
 from app.rag.ingestion.converters.docx import docx_to_markdown
 from app.rag.ingestion.normalizer import normalize_for_search
-from app.rag.language import detect_document_lang, detect_lang
+from app.rag.language import coerce_lang, detect_document_lang, detect_lang
+from app.services.voice_service import tts_cache_key
 
 
 def test_language_detection():
     assert detect_lang("ኢንኮሞኮ ምን አገልግሎቶች ይሰጣል?") == "am"
     assert detect_lang("What loans does Inkomoko offer?") == "en"
     assert detect_lang("Inkomoko ብድር ይሰጣል?") == "am"
+    assert coerce_lang("om") == "om"
+    assert coerce_lang("so") == "so"
+    assert coerce_lang("xx") is None
     assert detect_document_lang("ሰላም ነው። " * 10 + "hello") == "am"
     assert detect_document_lang("hello world " * 5 + "ሰላም " * 5) == "mixed"
 
@@ -136,7 +142,29 @@ def test_transcription_prompt_has_vocabulary_context_and_language():
     assert "- ኢንኮሞኮ (አማርኛ) / Inkomoko (English)" in am and "- ብድር" in am
     assert "do NOT transcribe" in am and "User: Loans?" in am
     en = build_transcription_prompt(prompt_lang="en", vocabulary=[], context=None)
-    assert en.startswith("Transcribe this audio verbatim.") and "Vocabulary" not in en
+    assert en.startswith("Transcribe this audio verbatim.") and "Afaan Oromo" in en and "Somali" in en
+    om = build_transcription_prompt(prompt_lang="om", vocabulary=[], context=None)
+    so = build_transcription_prompt(prompt_lang="so", vocabulary=[], context=None)
+    assert "Afaan Oromo" in om and "Somali" in so
+
+
+def test_tts_cache_key_includes_language_model_voice_and_text():
+    import uuid
+
+    message_id = uuid.uuid4()
+    base = tts_cache_key(message_id, "wav", lang="am", model="m", voice="v", text="hello")
+    assert base != tts_cache_key(message_id, "wav", lang="om", model="m", voice="v", text="hello")
+    assert base != tts_cache_key(message_id, "wav", lang="am", model="m2", voice="v", text="hello")
+    assert base != tts_cache_key(message_id, "wav", lang="am", model="m", voice="v2", text="hello")
+    assert base != tts_cache_key(message_id, "wav", lang="am", model="m", voice="v", text="hello!")
+
+
+async def test_openrouter_tts_rejects_disabled_language_before_provider_call():
+    tts = OpenRouterTTS(None, "model", "voice", ["am", "en"])  # type: ignore[arg-type]
+    assert tts.supports("am")
+    assert not tts.supports("om")
+    with pytest.raises(ValueError, match="not enabled"):
+        await tts.synthesize("Nagaan", "om")
 
 
 def _stream_pieces(text: str, first_clause_words: int = 5) -> tuple[list[str], bool]:

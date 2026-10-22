@@ -38,7 +38,12 @@ class RerankerPort(Protocol):
 
 class STTPort(Protocol):
     async def transcribe(
-        self, audio: bytes, audio_format: str = "wav", context: list[ChatTurn] | None = None
+        self,
+        audio: bytes,
+        audio_format: str = "wav",
+        context: list[ChatTurn] | None = None,
+        *,
+        language_hint: str | None = None,
     ) -> str: ...
 
 
@@ -47,6 +52,8 @@ class TTSPort(Protocol):
     voice: str
     audio_format: str  # e.g. "wav"
     content_type: str  # e.g. "audio/wav"
+
+    def supports(self, lang: str) -> bool: ...
 
     async def synthesize(self, text: str, lang: str) -> bytes: ...
 

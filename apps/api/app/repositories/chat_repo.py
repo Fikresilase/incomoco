@@ -33,8 +33,8 @@ class ChatRepository:
 
     # ---- conversations ----------------------------------------------------------
 
-    async def create_conversation(self, session_id: uuid.UUID, title: str) -> Conversation:
-        conversation = Conversation(session_id=session_id, title=title[:80])
+    async def create_conversation(self, session_id: uuid.UUID, title: str, lang: str = "en") -> Conversation:
+        conversation = Conversation(session_id=session_id, title=title[:80], lang=lang)
         self.db.add(conversation)
         await self.db.flush()
         return conversation
@@ -61,10 +61,14 @@ class ChatRepository:
     async def delete_conversation(self, conversation: Conversation) -> None:
         await self.db.delete(conversation)
 
-    async def touch_conversation(self, conversation_id: uuid.UUID, title: str | None = None) -> None:
+    async def touch_conversation(
+        self, conversation_id: uuid.UUID, title: str | None = None, lang: str | None = None
+    ) -> None:
         values: dict = {"updated_at": utcnow()}
         if title:
             values["title"] = title[:80]
+        if lang:
+            values["lang"] = lang
         await self.db.execute(update(Conversation).where(Conversation.id == conversation_id).values(**values))
 
     async def count_messages(self, conversation_id: uuid.UUID) -> int:
@@ -214,6 +218,8 @@ class ChatRepository:
         audio_format: str,
         voice: str,
         model: str,
+        lang: str,
+        text_hash: str,
         duration_ms: int | None = None,
     ) -> None:
         await self.db.execute(delete(MessageAudio).where(MessageAudio.message_id == message_id))
@@ -222,8 +228,10 @@ class ChatRepository:
                 message_id=message_id,
                 storage_key=storage_key,
                 format=audio_format,
+                lang=lang,
                 voice=voice,
                 model=model,
+                text_hash=text_hash,
                 duration_ms=duration_ms,
             )
         )

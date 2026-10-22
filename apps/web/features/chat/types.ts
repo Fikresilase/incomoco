@@ -1,4 +1,4 @@
-import type { Message, Modality, MessageStatus, Rating, Source, Lang } from "@/lib/api";
+import type { LearningRecommendation, Message, Modality, MessageStatus, Rating, Source, Lang } from "@/lib/api";
 
 /** A message as rendered in the thread: server data plus local streaming state. */
 export interface UIMessage {
@@ -12,6 +12,7 @@ export interface UIMessage {
   sources: Source[];
   feedback: Rating | null;
   has_audio: boolean;
+  learning_recommendations: LearningRecommendation[];
   created_at: string;
   /** True while tokens are still arriving. */
   streaming: boolean;
@@ -38,6 +39,7 @@ export function fromServer(message: Message): UIMessage {
 /** Context handed to composer add-ons (dictation, live talk) composed in by the route. */
 export interface ComposerToolsContext {
   conversationId: string | null;
+  lang: Lang;
   /** True while an answer is streaming or the browser is offline. */
   disabled: boolean;
   /** Insert dictated text into the input box (for editing; never auto-sent). */

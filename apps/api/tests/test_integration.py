@@ -117,6 +117,12 @@ async def test_full_flow():
             )
             assert parse_sse(resp.text)[0][1]["lang"] == "am"
 
+            # Explicit user-selected Latin-script languages are preserved and not treated as English.
+            resp = await client.post("/api/v1/chat", json={"message": "Inkomoko tajaajila maalii kenna?", "lang": "om"})
+            assert parse_sse(resp.text)[0][1]["lang"] == "om"
+            resp = await client.post("/api/v1/chat", json={"message": "Adeeg noocee ah ayay bixisaa?", "lang": "so"})
+            assert parse_sse(resp.text)[0][1]["lang"] == "so"
+
             # --- history
             convs = (await client.get("/api/v1/conversations")).json()
             assert [c["id"] for c in convs] == [conversation_id]
@@ -144,9 +150,11 @@ async def test_full_flow():
 
             # --- dictation
             tr = await client.post(
-                "/api/v1/voice/transcribe", files={"audio": ("a.wav", wav_bytes(), "audio/wav")}
+                "/api/v1/voice/transcribe",
+                data={"language_hint": "om"},
+                files={"audio": ("a.wav", wav_bytes(), "audio/wav")},
             )
-            assert tr.status_code == 200 and tr.json()["text"]
+            assert tr.status_code == 200 and tr.json()["text"] and tr.json()["lang"] == "om"
 
             # --- analytics
             summary = (await client.get("/api/v1/admin/analytics/summary", params={"days": 7})).json()

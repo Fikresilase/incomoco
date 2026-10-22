@@ -23,6 +23,9 @@ class ScriptedTTS:
             raise result
         return result
 
+    def supports(self, lang: str) -> bool:
+        return lang in {"am", "om", "so", "en"}
+
 
 async def test_fast_request_needs_no_backup():
     inner = ScriptedTTS([(0.01, b"a")])
@@ -57,3 +60,9 @@ async def test_both_failing_raises_and_both_slow_times_out():
     slow = ScriptedTTS([(5.0, b"x"), (5.0, b"y")])
     with pytest.raises(TTSTimeoutError):
         await HedgedTTS(slow, hedge_after=0.05, timeout=0.2).synthesize("hi", "en")
+
+
+def test_hedged_tts_delegates_language_support():
+    wrapped = HedgedTTS(ScriptedTTS([]))
+    assert wrapped.supports("om") is True
+    assert wrapped.supports("fr") is False

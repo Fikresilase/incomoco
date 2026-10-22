@@ -19,7 +19,7 @@ import {
   type Locale,
 } from "./config";
 
-const MESSAGES = { en, am } as const;
+const MESSAGES = { en, am, om: en, so: en } as const;
 
 interface LocaleContextValue {
   locale: Locale;

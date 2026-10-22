@@ -151,6 +151,8 @@
       "negative": "ጠቃሚ ያልሆነ",
       "english": "እንግሊዝኛ",
       "amharic": "አማርኛ",
+      "oromo": "Afaan Oromo",
+      "somali": "Somali",
       "text": "ጽሑፍ",
       "dictation": "በድምፅ መጻፍ",
       "voice": "የቀጥታ ንግግር",
@@ -221,6 +223,8 @@
       },
       "lang": {
         "am": "አማርኛ",
+        "om": "Afaan Oromo",
+        "so": "Somali",
         "en": "እንግሊዝኛ",
         "mixed": "ድብልቅ"
       },

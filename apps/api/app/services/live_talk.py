@@ -17,6 +17,7 @@ from app.core.audio import join_wav, prepend_silence
 from app.core.container import Container
 from app.core.db import SessionFactory
 from app.rag.generation.speech_text import SentenceSplitter
+from app.rag.language import coerce_lang
 from app.repositories.chat_repo import ChatRepository
 from app.services.chat_service import ChatService, TurnContext
 from app.services.voice_service import VoiceService
@@ -74,7 +75,7 @@ class LiveTalkSession:
     async def _on_control(self, payload: dict) -> bool:
         kind = payload.get("type")
         if kind == "session.start":
-            await self._start_session(payload.get("conversation_id"))
+            await self._start_session(payload.get("conversation_id"), payload.get("lang"))
         elif kind == "interrupt":
             if await self._cancel_turn():
                 await self.send("turn.done", agent_message_id=None, interrupted=True, no_answer=False)
@@ -82,7 +83,8 @@ class LiveTalkSession:
             return False
         return True
 
-    async def _start_session(self, conversation_id: str | None) -> None:
+    async def _start_session(self, conversation_id: str | None, lang: str | None = None) -> None:
+        requested_lang = coerce_lang(lang)
         async with SessionFactory() as db:
             repo = ChatRepository(db)
             await repo.touch_session(self.session_id, None)
@@ -90,7 +92,10 @@ class LiveTalkSession:
             if conversation_id:
                 conversation = await repo.get_conversation(uuid.UUID(conversation_id), self.session_id)
             if conversation is None:
-                conversation = await repo.create_conversation(self.session_id, PLACEHOLDER_TITLE)
+                conversation = await repo.create_conversation(self.session_id, PLACEHOLDER_TITLE, requested_lang or "en")
+            elif requested_lang:
+                await repo.touch_conversation(conversation.id, lang=requested_lang)
+                conversation.lang = requested_lang
             await db.commit()
             self.conversation_id = conversation.id
         await self.send("session.ready", conversation_id=str(self.conversation_id))
@@ -128,7 +133,12 @@ class LiveTalkSession:
             async with SessionFactory() as db:
                 context = await self.voice.recent_context(db, self.session_id, self.conversation_id)
             mark("context")
-            text, lang = await self.voice.transcribe(audio, context=context)
+            conversation_lang = None
+            async with SessionFactory() as db:
+                if self.conversation_id is not None:
+                    conversation = await ChatRepository(db).get_conversation(self.conversation_id, self.session_id)
+                    conversation_lang = conversation.lang if conversation else None
+            text, lang = await self.voice.transcribe(audio, context=context, language_hint=conversation_lang)
             mark("stt")
             if not text.strip():
                 await self.send("turn.empty")
@@ -151,7 +161,12 @@ class LiveTalkSession:
             repo = ChatRepository(db)
             first = await repo.count_messages(self.conversation_id) == 0
             ctx = await self.chat.start_turn(
-                db, self.session_id, message=text, conversation_id=self.conversation_id, modality="voice"
+                db,
+                self.session_id,
+                message=text,
+                conversation_id=self.conversation_id,
+                modality="voice",
+                lang=None,
             )
             if first:
                 await repo.touch_conversation(self.conversation_id, title=text)

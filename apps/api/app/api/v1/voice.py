@@ -1,5 +1,6 @@
 import uuid
 from fnmatch import fnmatch
+from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import (
@@ -14,7 +15,7 @@ from fastapi import (
     WebSocket,
     status,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SESSION_COOKIE, get_container, limiter, parse_session_cookie, session_id_from
@@ -23,7 +24,7 @@ from app.core.container import Container
 from app.core.db import get_db
 from app.services.chat_service import NotFoundError
 from app.services.live_talk import LiveTalkSession
-from app.services.voice_service import VoiceService
+from app.services.voice_service import UnsupportedTTSLanguage, VoiceService
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
@@ -38,6 +39,11 @@ class TranscriptionOut(BaseModel):
 class SpeakIn(BaseModel):
     message_id: uuid.UUID
 
+class SpeakTextIn(BaseModel):
+    text: str = Field(min_length=1, max_length=800)
+    language: Literal["am", "om", "so", "en"]
+    context: Literal["dashboard"] = "dashboard"
+
 
 @router.post("/transcribe", response_model=TranscriptionOut)
 @limiter.limit(get_settings().rate_limit_voice)
@@ -45,6 +51,7 @@ async def transcribe(
     request: Request,
     audio: UploadFile = File(...),
     conversation_id: uuid.UUID | None = Form(default=None),
+    language_hint: str | None = Form(default=None),
     db: AsyncSession = Depends(get_db),
     container: Container = Depends(get_container),
 ) -> TranscriptionOut:
@@ -55,7 +62,7 @@ async def transcribe(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty recording")
     service = VoiceService(container)
     context = await service.recent_context(db, session_id_from(request), conversation_id)
-    text, lang = await service.transcribe(data, "wav", context)
+    text, lang = await service.transcribe(data, "wav", context, language_hint=language_hint)
     return TranscriptionOut(text=text, lang=lang)
 
 
@@ -69,6 +76,8 @@ async def speak(
 ) -> Response:
     try:
         audio = await VoiceService(container).speak_message(db, session_id_from(request), body.message_id)
+    except UnsupportedTTSLanguage as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     return Response(
@@ -76,6 +85,19 @@ async def speak(
         media_type=container.tts.content_type,
         headers={"Cache-Control": "private, max-age=86400"},
     )
+
+@router.post("/speak-text", response_class=Response, responses={200: {"content": {"audio/wav": {}}}})
+@limiter.limit(get_settings().rate_limit_voice)
+async def speak_text(request: Request, body: SpeakTextIn, container: Container = Depends(get_container)) -> Response:
+    if body.language not in {"am", "om", "so", "en"}:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported language")
+    if body.context != "dashboard" or not body.text.strip() or len(body.text) > 800:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid text-to-speech request")
+    try:
+        audio = await VoiceService(container).synthesize_text(body.text.strip(), body.language)
+    except UnsupportedTTSLanguage as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return Response(content=audio, media_type=container.tts.content_type, headers={"Cache-Control": "private, max-age=86400"})
 
 
 def origin_allowed(websocket: WebSocket) -> bool:

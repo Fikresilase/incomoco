@@ -17,15 +17,27 @@ _INSTRUCTIONS = {
         "ሊረዳ የሚችል ንግግር ከሌለ ምንም ነገር አያቅርቡ።"
     ),
     "en": (
-        "Transcribe this audio verbatim. The speaker uses Amharic or English (sometimes mixed).\n"
-        "Write Amharic in Ge'ez (Ethiopic) script and English in Latin script.\n"
+        "Transcribe this audio verbatim. The speaker may use Amharic, Afaan Oromo, Somali, or English (sometimes mixed).\n"
+        "Write Amharic in Ge'ez (Ethiopic) script. Write Afaan Oromo, Somali, and English in Latin script.\n"
+        "Output ONLY the transcript text: no quotes, labels, translation, or commentary.\n"
+        "If there is no intelligible speech, output nothing."
+    ),
+    "om": (
+        "Transcribe this audio verbatim. The speaker is expected to use Afaan Oromo, but may mix in Amharic, Somali, or English.\n"
+        "Write Afaan Oromo, Somali, and English in Latin script. Write Amharic in Ge'ez (Ethiopic) script.\n"
+        "Output ONLY the transcript text: no quotes, labels, translation, or commentary.\n"
+        "If there is no intelligible speech, output nothing."
+    ),
+    "so": (
+        "Transcribe this audio verbatim. The speaker is expected to use Somali, but may mix in Amharic, Afaan Oromo, or English.\n"
+        "Write Somali, Afaan Oromo, and English in Latin script. Write Amharic in Ge'ez (Ethiopic) script.\n"
         "Output ONLY the transcript text: no quotes, labels, translation, or commentary.\n"
         "If there is no intelligible speech, output nothing."
     ),
 }
 
 # Kept bilingual whichever instruction language is used: English words must stay in Latin script.
-_SCRIPT_RULE = "የእንግሊዝኛ ቃላት በላቲን ፊደላት ይቆዩ / English words stay in Latin letters (e.g. Inkomoko, loan)."
+_SCRIPT_RULE = "የላቲን ፊደል ቋንቋዎች በላቲን ፊደላት ይቆዩ / Latin-script languages stay in Latin letters (e.g. Inkomoko, loan). Do not translate; transcribe."
 _VOCAB_HEADER = "መዝገበ ቃላት / Vocabulary: when these are spoken, use exactly these spellings:"
 _CONTEXT_HEADER = "የቅርብ ጊዜ ውይይት (ለአውድ ብቻ፤ አይጻፉት) / Recent conversation (context only; do NOT transcribe it):"
 _MAX_TURN_CHARS = 300

@@ -118,7 +118,7 @@ services:
       retries: 30
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-inkomoko}
@@ -129,7 +129,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "mcli alias set local http://localhost:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null 2>&1 && mcli ready local"]
       interval: 5s
       timeout: 5s
       retries: 20
