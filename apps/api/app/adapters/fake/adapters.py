@@ -104,7 +104,7 @@ class FakeTTS:
     content_type = "audio/wav"
 
     def supports(self, lang: str) -> bool:
-        return lang in {"am", "om", "so", "en"}
+        return lang in {"am", "en"}
 
     async def synthesize(self, text: str, lang: str) -> bytes:
         return pcm_to_wav(bytes(4800))  # 0.1 s of silence at 24 kHz

@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, Menu, PanelLeftClose, PanelLeftOpen, SquarePen } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, Menu, SquarePen } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -12,8 +12,6 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { Wordmark } from "@/components/brand/wordmark";
-import { LocaleToggle } from "@/components/locale-toggle";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,10 +25,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { useLocaleSwitch } from "@/lib/i18n/provider";
-import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { useChat } from "../hooks/use-chat";
 import { useReadAloud } from "../hooks/use-read-aloud";
 import { EntrepreneurProfilePanel } from "@/features/entrepreneur/components/profile-panel";
+import { EntrepreneurNav } from "@/features/entrepreneur/components/entrepreneur-nav";
 import type { ComposerToolsContext } from "../types";
 import { Composer, type ComposerHandle } from "./composer";
 import { ConversationList } from "./conversation-list";
@@ -41,6 +40,12 @@ export interface ChatAppProps {
   /** Extra composer controls (dictation, live talk), composed in by the route. */
   ComposerTools?: ComponentType<{ ctx: ComposerToolsContext }>;
 }
+
+type AdviserContext = {
+  business_name: string | null;
+  today_priority: string;
+};
+const focusLabel = { am: "የአሁኑ ትኩረት", en: "Current focus", om: "Xiyyeeffannoo ammaa", so: "Diiradda hadda" } as const;
 
 function IconAction({
   label,
@@ -80,14 +85,17 @@ function ThreadSkeleton() {
 export function ChatApp({ ComposerTools }: ChatAppProps) {
   const t = useTranslations();
   const chat = useChat();
-  const readAloud = useReadAloud();
   const online = useOnlineStatus();
   const { locale } = useLocaleSwitch();
+  const readAloud = useReadAloud(locale);
+  const adviserContext = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: () => apiFetch<AdviserContext>("/me/dashboard"),
+  });
   const composerRef = useRef<ComposerHandle>(null);
 
   const [input, setInput] = useState("");
   const [fromDictation, setFromDictation] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { selectConversation, send, refreshAfterVoice, conversationId } = chat;
@@ -172,12 +180,6 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
       </nav>
       <div className="border-t border-border px-5 py-3">
         <EntrepreneurProfilePanel />
-        <Link
-          href="/admin"
-          className="text-xs font-semibold text-muted-foreground hover:text-secondary focus-visible:underline"
-        >
-          {t("chat.admin")}
-        </Link>
       </div>
     </>
   );
@@ -226,7 +228,8 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <EntrepreneurNav active="adviser" />
       <a
         href="#chat-input"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-full focus:bg-secondary focus:px-4 focus:py-2 focus:text-sm focus:text-secondary-foreground"
@@ -234,71 +237,35 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
         {t("common.skipToContent")}
       </a>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden shrink-0 flex-col border-r border-border bg-muted/40 transition-[width] duration-200 md:flex",
-          collapsed ? "w-0 overflow-hidden border-r-0" : "w-72"
-        )}
-        aria-hidden={collapsed || undefined}
-        inert={collapsed || undefined}
-      >
-        <div className="flex h-14 items-center justify-between px-4">
-          <Wordmark />
-          <IconAction label={t("chat.collapseSidebar")} onClick={() => setCollapsed(true)}>
-            <PanelLeftClose />
-          </IconAction>
-        </div>
-        {sidebarBody}
-      </aside>
-
-      {/* Mobile drawer */}
+      {/* Conversation history stays available without taking space from the adviser. */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="w-[85%] max-w-xs gap-0 bg-background p-0">
+        <SheetContent side="left" className="w-[85%] max-w-xs gap-0 bg-surface p-0">
           <SheetHeader className="h-14 justify-center px-4 py-0">
-            <SheetTitle>
-              <Wordmark />
-            </SheetTitle>
+            <SheetTitle>{t("chat.conversations")}</SheetTitle>
             <SheetDescription className="sr-only">{t("chat.conversations")}</SheetDescription>
           </SheetHeader>
           <div className="flex min-h-0 flex-1 flex-col">{sidebarBody}</div>
         </SheetContent>
       </Sheet>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-1 px-2 sm:px-3">
-          <div className="md:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-border-soft px-3 py-2 sm:px-6">
+          <h1 className="shrink-0 font-semibold text-secondary">{locale === "am" ? "አማካሪ" : locale === "om" ? "Gorsaa" : locale === "so" ? "La-taliye" : "Adviser"}</h1>
+          {adviserContext.data?.business_name && <div className="min-w-0 border-l border-border-strong pl-3"><p className="truncate text-xs font-medium text-secondary sm:text-sm">{adviserContext.data.business_name}</p><p className="hidden truncate text-xs text-text-secondary sm:block">{focusLabel[locale]}: {adviserContext.data.today_priority}</p></div>}
+          <div className="ml-auto flex items-center gap-1">
             <IconAction label={t("chat.openSidebar")} onClick={() => setDrawerOpen(true)}>
               <Menu />
             </IconAction>
-          </div>
-          {collapsed && (
-            <div className="hidden items-center gap-1 md:flex">
-              <IconAction label={t("chat.expandSidebar")} onClick={() => setCollapsed(false)}>
-                <PanelLeftOpen />
-              </IconAction>
-              <IconAction label={t("chat.newChat")} onClick={newChat}>
-                <SquarePen />
-              </IconAction>
-            </div>
-          )}
-          <div className={cn("px-1 md:hidden", collapsed && "md:block")}>
-            <Wordmark className="text-base" />
-          </div>
-          <div className="ml-auto flex items-center gap-1">
-            <div className="md:hidden">
-              <IconAction label={t("chat.newChat")} onClick={newChat}>
-                <SquarePen />
-              </IconAction>
-            </div>
-            <LocaleToggle />
+            <IconAction label={t("chat.newChat")} onClick={newChat}>
+              <SquarePen />
+            </IconAction>
           </div>
         </header>
         <OfflineBanner />
 
         <main className="flex min-h-0 flex-1 flex-col" id="main">
           {body}
-          <div className="shrink-0 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:px-6">
+          <div className="shrink-0 px-3 pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+4.5rem)] sm:px-6 sm:pb-3">
             <div className="mx-auto w-full max-w-3xl">
               <Composer
                 ref={composerRef}

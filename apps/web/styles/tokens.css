@@ -3,28 +3,45 @@
  * Extracted from inkomoko.com on 2026-10-09; to be confirmed against Inkomoko's brand guidelines.
  */
 :root {
-  --primary: #ea4e35; /* coral: primary CTAs, mic + live talk, active states */
-  --primary-foreground: #f9fafb;
-  --secondary: #00205f; /* navy: body text, headings, user bubble */
-  --secondary-foreground: #f9fafb;
-  --navy: #00205f;
-  --info: #66ccff; /* highlights, live-talk orb */
-  --violet: #1c56c8; /* secondary accent, links */
-  --background: #ffffff;
-  --foreground: #030712;
-  --card: #ffffff;
-  --card-foreground: #030712;
-  --popover: #ffffff;
-  --popover-foreground: #030712;
-  --muted: #f3f4f6;
-  --muted-foreground: #6a7282;
-  --accent: #f3f4f6;
-  --accent-foreground: #00205f;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #1c56c8;
+  --brand-primary: #0b2a5b;
+  --brand-primary-dark: #081d3d;
+  --brand-accent: #f15a3b;
+  --brand-accent-hover: #d9482c;
+  --surface: #ffffff;
+  --surface-soft: #f3f1ec;
+  --surface-navy: #eef2f7;
+  --surface-coral: #fff1ed;
+  --text-primary: #10284f;
+  --text-secondary: #667085;
+  --text-muted: #98a2b3;
+  --border-soft: #e6e2da;
+  --border-strong: #d5d0c7;
+  --success: #2f7a57;
+  --success-soft: #edf7f1;
+  --warning: #c27a22;
+  --info: #3f6fa8;
+
+  /* shadcn semantic aliases */
+  --primary: var(--brand-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-primary);
+  --secondary-foreground: #ffffff;
+  --navy: var(--brand-primary);
+  --violet: var(--info);
+  --background: #f8f6f1;
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --muted: var(--surface-soft);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--surface-navy);
+  --accent-foreground: var(--brand-primary);
+  --border: var(--border-soft);
+  --input: var(--border-soft);
+  --ring: var(--brand-primary);
   --destructive: #e40014;
-  --success: #00796b;
   --radius: 0.625rem;
 
   /* Admin chart palette */

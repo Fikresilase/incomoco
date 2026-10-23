@@ -167,6 +167,19 @@ async def test_openrouter_tts_rejects_disabled_language_before_provider_call():
         await tts.synthesize("Nagaan", "om")
 
 
+async def test_voice_capabilities_match_the_configured_tts_adapter():
+    from types import SimpleNamespace
+
+    from app.adapters.fake.adapters import FakeTTS
+    from app.api.v1.voice import capabilities
+
+    tts = OpenRouterTTS(None, "model", "voice", ["am", "en"])  # type: ignore[arg-type]
+    result = await capabilities(SimpleNamespace(tts=tts))  # type: ignore[arg-type]
+    assert result.supported_languages == ["am", "en"]
+    fake_result = await capabilities(SimpleNamespace(tts=FakeTTS()))  # type: ignore[arg-type]
+    assert fake_result.supported_languages == ["am", "en"]
+
+
 def _stream_pieces(text: str, first_clause_words: int = 5) -> tuple[list[str], bool]:
     """Feed text in tiny chunks, like streamed LLM tokens."""
     splitter = SentenceSplitter(first_clause_words=first_clause_words)

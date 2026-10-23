@@ -56,7 +56,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   return (
     <form
-      className="relative rounded-[1.75rem] border border-border bg-background p-2 shadow-[0_2px_12px_rgba(0,32,95,0.06)] transition-shadow focus-within:border-secondary/30 focus-within:shadow-[0_2px_16px_rgba(0,32,95,0.10)]"
+      className="relative rounded-[1.75rem] border border-border-soft bg-surface p-2 shadow-[0_2px_12px_rgba(11,42,91,0.05)] transition-shadow focus-within:border-brand-primary/30 focus-within:shadow-[0_2px_16px_rgba(11,42,91,0.08)]"
       onSubmit={(e) => {
         e.preventDefault();
         if (canSend) onSubmit();

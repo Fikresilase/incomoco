@@ -15,7 +15,8 @@ export interface ThreadProps {
   readAloud: {
     playingId: string | null;
     loadingId: string | null;
-    toggle: (id: string) => void;
+    toggle: (id: string, language: string | null | undefined) => void;
+    canSpeak: (language: string | null | undefined) => boolean;
   };
 }
 
@@ -68,9 +69,10 @@ export function Thread({ messages, streaming, onRegenerate, onRetry, readAloud }
                 onRegenerate={onRegenerate}
                 onRetry={onRetry}
                 readAloud={{
+                  supported: readAloud.canSpeak(message.lang),
                   playing: readAloud.playingId === message.id,
                   loading: readAloud.loadingId === message.id,
-                  toggle: () => readAloud.toggle(message.id),
+                  toggle: () => readAloud.toggle(message.id, message.lang),
                 }}
               />
             )

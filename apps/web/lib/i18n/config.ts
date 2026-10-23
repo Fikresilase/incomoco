@@ -1,6 +1,6 @@
 export const locales = ["en", "am", "om", "so"] as const;
 export type Locale = (typeof locales)[number];
-export const defaultLocale: Locale = "en";
+export const defaultLocale: Locale = "am";
 
 /** Cookie (read on the server for first paint) + localStorage key (per-browser memory). */
 export const LOCALE_COOKIE = "NEXT_LOCALE";

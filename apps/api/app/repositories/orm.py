@@ -70,7 +70,7 @@ class EntrepreneurProfile(Base):
     session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"))
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     identity_type: Mapped[str] = mapped_column(String(16), nullable=False, default="guest", server_default="guest")
-    preferred_language: Mapped[str] = mapped_column(String(8), nullable=False, default="en", server_default="en")
+    preferred_language: Mapped[str] = mapped_column(String(8), nullable=False, default="am", server_default="am")
     business_name: Mapped[str | None] = mapped_column(String(200))
     business_description: Mapped[str | None] = mapped_column(Text)
     business_type: Mapped[str | None] = mapped_column(String(120))

@@ -57,6 +57,6 @@ class EntrepreneurContextService:
     async def context_for_guest(self, db: AsyncSession, session_id: uuid.UUID) -> EntrepreneurContext:
         profile = await self.get_guest(db, session_id)
         if not profile:
-            return EntrepreneurContext("en", {}, {})
+            return EntrepreneurContext("am", {}, {})
         stated = {k: getattr(profile, k) for k in ("business_name", "business_description", "business_type", "business_stage", "business_location", "primary_business_challenge", "learning_goal", "preferred_learning_format", "experience_level") if getattr(profile, k)}
         return EntrepreneurContext(profile.preferred_language, {}, stated)

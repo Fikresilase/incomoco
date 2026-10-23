@@ -36,6 +36,19 @@ class TranscriptionOut(BaseModel):
     lang: str
 
 
+class VoiceCapabilitiesOut(BaseModel):
+    supported_languages: list[Literal["am", "om", "so", "en"]]
+
+
+@router.get("/capabilities", response_model=VoiceCapabilitiesOut)
+async def capabilities(container: Container = Depends(get_container)) -> VoiceCapabilitiesOut:
+    """Expose the active adapter's actual read-aloud capability to the web client."""
+    languages: list[Literal["am", "om", "so", "en"]] = [
+        lang for lang in ("am", "om", "so", "en") if container.tts.supports(lang)
+    ]
+    return VoiceCapabilitiesOut(supported_languages=languages)
+
+
 class SpeakIn(BaseModel):
     message_id: uuid.UUID
 

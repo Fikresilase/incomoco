@@ -21,7 +21,7 @@ export function LocaleToggle({ className }: { className?: string }) {
       role="group"
       aria-label={t("language")}
       className={cn(
-        "inline-flex h-8 items-center rounded-full border border-border bg-background p-0.5",
+        "inline-flex h-8 items-center rounded-full border border-border-soft bg-surface p-0.5",
         className
       )}
     >
@@ -37,7 +37,7 @@ export function LocaleToggle({ className }: { className?: string }) {
             className={cn(
               "h-full min-w-10 rounded-full px-2.5 text-xs font-bold transition-colors focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none",
               active
-                ? "bg-secondary text-secondary-foreground"
+                ? "bg-surface-navy text-brand-primary"
                 : "text-secondary hover:bg-muted"
             )}
           >

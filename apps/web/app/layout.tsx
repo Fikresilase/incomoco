@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className="h-full"
       suppressHydrationWarning
     >
-      <body className="min-h-dvh">
+      <body className="min-h-dvh" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={<BootSplash />}>
             <IntlRoot>{children}</IntlRoot>

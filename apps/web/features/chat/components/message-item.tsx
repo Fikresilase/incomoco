@@ -17,7 +17,7 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="size-1.5 animate-bounce rounded-full bg-secondary/40"
+          className="size-1.5 animate-bounce rounded-full bg-brand-primary/60"
           style={{ animationDelay: `${i * 120}ms` }}
         />
       ))}
@@ -35,7 +35,7 @@ export const UserMessage = memo(function UserMessage({ message }: { message: UIM
         <span className="sr-only">{t("chat.you")}:</span>
         <div
           lang={message.lang ?? undefined}
-          className="rounded-2xl rounded-br-md bg-secondary px-4 py-2.5 whitespace-pre-wrap text-secondary-foreground [overflow-wrap:anywhere]"
+          className="rounded-2xl rounded-br-md bg-surface-navy px-4 py-2.5 whitespace-pre-wrap text-text-primary [overflow-wrap:anywhere]"
         >
           {message.content}
         </div>
@@ -56,7 +56,7 @@ export interface AssistantMessageProps {
   canRegenerate: boolean;
   onRegenerate: () => void;
   onRetry: (message: UIMessage) => void;
-  readAloud: { playing: boolean; loading: boolean; toggle: () => void };
+  readAloud: { supported: boolean; playing: boolean; loading: boolean; toggle: () => void };
 }
 
 export const AssistantMessage = memo(function AssistantMessage({
@@ -74,11 +74,12 @@ export const AssistantMessage = memo(function AssistantMessage({
     <article className="group/msg flex gap-3" aria-label={t("common.assistant")}>
       <div
         aria-hidden
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-background"
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-border-soft bg-surface"
       >
-        <span className="size-2.5 rounded-full bg-primary" />
+        <span className="size-2.5 rounded-full bg-brand-primary" />
       </div>
-      <div className="min-w-0 flex-1 pt-0.5">
+      <div className="min-w-0 max-w-3xl flex-1 rounded-xl border border-border-soft bg-surface px-4 py-3 shadow-[0_2px_10px_rgba(11,42,91,0.035)]">
+        <p className="mb-2 text-xs font-semibold text-text-secondary">{t("common.assistant")}</p>
         <div
           lang={message.lang ?? undefined}
           aria-live={message.streaming ? "polite" : undefined}
@@ -96,7 +97,7 @@ export const AssistantMessage = memo(function AssistantMessage({
           {message.streaming && !empty && (
             <span
               aria-hidden
-              className="ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 rounded-full bg-primary"
+              className="ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 rounded-full bg-brand-primary"
               style={{ animation: "caret-blink 1s step-end infinite" }}
             />
           )}
