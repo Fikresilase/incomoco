@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, "Noto Sans Ethiopic", sans-serif;
-  --font-heading: Arial, "Noto Sans Ethiopic", sans-serif;
+  --font-sans: "Noto Sans Ethiopic", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Noto Sans Ethiopic", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -120,7 +120,7 @@
   margin: 1.1em 0 0.5em;
   line-height: 1.3;
   color: var(--secondary);
-  font-weight: 700;
+    font-weight: 600;
 }
 .prose-chat h1 {
   font-size: 1.35rem;

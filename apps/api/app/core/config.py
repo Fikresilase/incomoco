@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     app_url: str = "http://localhost:3000"
+    environment: str = "development"
     llm_model: str = "google/gemini-3.5-flash-lite"
     tts_model: str = "google/gemini-3.8-flash-lite-tts"
     tts_voice: str = "Kore"
@@ -73,6 +74,17 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-to-a-long-random-string"
     jwt_ttl_hours: int = 8
     cookie_secure: bool = False
+
+    @model_validator(mode="after")
+    def reject_unsafe_production_defaults(self) -> "Settings":
+        if self.environment.lower() in {"production", "prod"}:
+            if self.admin_password == "admin123" or self.jwt_secret == "change-me-to-a-long-random-string":
+                raise ValueError("Production requires explicit admin migration credentials and JWT_SECRET")
+            if len(self.jwt_secret) < 32:
+                raise ValueError("Production JWT_SECRET must be at least 32 characters")
+            if not self.cookie_secure:
+                raise ValueError("Production cookie_secure must be enabled")
+        return self
 
     # Web
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]

@@ -15,6 +15,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -40,6 +41,67 @@ def _ts(nullable: bool = False, default: bool = True) -> Mapped[datetime]:
         default=utcnow if default else None,
         server_default=text("now()") if default else None,
     )
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    slug: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    created_at: Mapped[datetime] = _ts()
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+    __table_args__ = (UniqueConstraint("email", name="uq_user_accounts_email"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
+class Role(Base):
+    __tablename__ = "roles"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    created_at: Mapped[datetime] = _ts()
+
+
+class Permission(Base):
+    __tablename__ = "permissions"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    key: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    created_at: Mapped[datetime] = _ts()
+
+
+class AccountRole(Base):
+    __tablename__ = "account_roles"
+    __table_args__ = (UniqueConstraint("account_id", "role_id", name="uq_account_roles"),)
+    account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="CASCADE"), primary_key=True)
+    role_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+    __table_args__ = (UniqueConstraint("role_id", "permission_id", name="uq_role_permissions"),)
+    role_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+    permission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    __table_args__ = (Index("ix_auth_sessions_account_active", "account_id", "revoked_at"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="CASCADE"), nullable=False)
+    refresh_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    created_at: Mapped[datetime] = _ts()
+    rotated_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
 
 
 class ChatSession(Base):
@@ -68,7 +130,8 @@ class EntrepreneurProfile(Base):
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"))
-    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="SET NULL"))
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"))
     identity_type: Mapped[str] = mapped_column(String(16), nullable=False, default="guest", server_default="guest")
     preferred_language: Mapped[str] = mapped_column(String(8), nullable=False, default="am", server_default="am")
     business_name: Mapped[str | None] = mapped_column(String(200))

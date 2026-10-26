@@ -8,14 +8,14 @@
   --brand-accent: #f15a3b;
   --brand-accent-hover: #d9482c;
   --surface: #ffffff;
-  --surface-soft: #f3f1ec;
+  --surface-soft: #f3f6fa;
   --surface-navy: #eef2f7;
   --surface-coral: #fff1ed;
   --text-primary: #10284f;
   --text-secondary: #667085;
   --text-muted: #98a2b3;
-  --border-soft: #e6e2da;
-  --border-strong: #d5d0c7;
+  --border-soft: #e3e8ef;
+  --border-strong: #cbd5e1;
   --success: #2f7a57;
   --success-soft: #edf7f1;
   --warning: #c27a22;
@@ -28,7 +28,7 @@
   --secondary-foreground: #ffffff;
   --navy: var(--brand-primary);
   --violet: var(--info);
-  --background: #f8f6f1;
+  --background: #f7f9fc;
   --foreground: var(--text-primary);
   --card: var(--surface);
   --card-foreground: var(--text-primary);
