@@ -28,6 +28,9 @@ class LearningResourceOut(BaseModel):
     media_url: str | None
     storage_reference: str | None
     duration_seconds: int | None
+    course_key: str | None
+    chapter_number: int | None
+    lesson_content: dict | None
     source_reference: str | None
     version: str | None
     created_at: datetime

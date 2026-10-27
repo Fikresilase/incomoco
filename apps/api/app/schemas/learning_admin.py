@@ -28,6 +28,9 @@ class ResourceIn(BaseModel):
     duration_seconds: int | None = None
     is_demo: bool = True
     is_active: bool = False
+    course_key: str | None = Field(default=None, max_length=80)
+    chapter_number: int | None = Field(default=None, ge=1)
+    lesson_content: dict | None = None
 
 class ResourceStatusIn(BaseModel):
     approval_status: Literal["draft", "review", "approved", "archived"]

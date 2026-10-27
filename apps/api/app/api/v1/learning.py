@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_container, get_db, session_id_from
 from app.core.container import Container
-from app.repositories.orm import EntrepreneurProfile, LearningEvent, LearningResource, LearningSkill
+from app.repositories.orm import EntrepreneurProfile, LearningEvent, LearningProgress, LearningResource, LearningSkill, SkillEvidence, utcnow
 from app.schemas.learning import (
     LearningResourceOut,
     LearningSkillOut,
@@ -26,6 +26,8 @@ async def _resource_out(db: AsyncSession, resource: LearningResource) -> Learnin
         id=resource.id, title=resource.title, description=resource.description, skill_key=skill.key if skill else "",
         resource_type=resource.resource_type, language=resource.language, difficulty_level=resource.difficulty_level,
         media_url=resource.media_url if not resource.storage_reference else None, storage_reference=None, duration_seconds=resource.duration_seconds,
+        course_key=resource.course_key, chapter_number=resource.chapter_number,
+        lesson_content=resource.lesson_content,
         source_reference=resource.source_reference, version=resource.version, created_at=resource.created_at,
     )
 
@@ -72,6 +74,25 @@ async def record_event(resource_id: uuid.UUID, event_type: Literal["learning_rec
         raise HTTPException(404, "Learning resource not found")
     stmt = insert(LearningEvent).values(event_type=event_type, session_id=session_id_from(request), conversation_id=conversation_id, message_id=message_id, resource_id=resource_id, metadata_={"language": resource.language, "resource_type": resource.resource_type, "skill_id": str(resource.skill_id)}).on_conflict_do_nothing(index_elements=[LearningEvent.event_type, LearningEvent.message_id, LearningEvent.resource_id])
     await db.execute(stmt)
+    await db.commit()
+
+
+@router.post("/resources/{resource_id}/complete", status_code=204)
+async def complete_resource(resource_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    profile = await db.scalar(select(EntrepreneurProfile).where(EntrepreneurProfile.session_id == session_id_from(request)))
+    resource = await db.scalar(select(LearningResource).join(LearningSkill).where(LearningResource.id == resource_id, LearningResource.approval_status == "approved", LearningResource.is_active.is_(True), LearningSkill.active.is_(True)))
+    if not profile or not resource:
+        raise HTTPException(404, "Learning resource not found")
+    progress = await db.scalar(select(LearningProgress).where(LearningProgress.profile_id == profile.id, LearningProgress.resource_id == resource.id))
+    if progress:
+        progress.status = "completed"
+        progress.completed_at = progress.completed_at or utcnow()
+        progress.last_activity_at = utcnow()
+    else:
+        db.add(LearningProgress(profile_id=profile.id, skill_id=resource.skill_id, resource_id=resource.id, status="completed", started_at=utcnow(), completed_at=utcnow(), completion_evidence="lesson_completed"))
+    existing = await db.scalar(select(SkillEvidence).where(SkillEvidence.profile_id == profile.id, SkillEvidence.skill_id == resource.skill_id, SkillEvidence.evidence_type == "lesson_completed", SkillEvidence.source_reference == str(resource.id)))
+    if not existing:
+        db.add(SkillEvidence(profile_id=profile.id, skill_id=resource.skill_id, evidence_type="lesson_completed", result="positive", source_reference=str(resource.id)))
     await db.commit()
 
 
