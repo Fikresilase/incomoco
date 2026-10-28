@@ -108,7 +108,7 @@ function ActivityGrid({
           {Object.values(data).reduce((a, b) => a + b, 0)}
         </span>
       </div>
-      <div className="mt-4 overflow-x-auto pb-1">
+      <div className="scrollbar-thin mt-4 overflow-x-auto pb-1">
         <div
           className="grid w-fit grid-flow-col grid-rows-7 gap-1.5"
           role="group"
@@ -691,7 +691,7 @@ export function WorkDashboard() {
                     {t.addTransaction}
                   </Button>
                 </div>
-                <div className="mt-3 max-h-96 overflow-auto">
+                <div className="scrollbar-thin mt-3 max-h-96 overflow-auto">
                   {data.transactions.length ? (
                     <table className="w-full text-left text-sm">
                       <thead className="text-xs text-muted-foreground">
@@ -765,7 +765,7 @@ export function WorkDashboard() {
                     {t.addCustomer}
                   </Button>
                 </div>
-                <ul className="mt-3 max-h-96 divide-y divide-border-soft overflow-auto">
+                <ul className="scrollbar-thin mt-3 max-h-96 divide-y divide-border-soft overflow-auto">
                   {data.customers.map((row) => (
                     <li key={row.id} className="flex items-start gap-2 py-3">
                       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-navy text-xs font-semibold">

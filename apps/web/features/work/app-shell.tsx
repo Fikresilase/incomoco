@@ -160,7 +160,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
           {t.work}
         </Link>
       </nav>
-      <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+      <div className="scrollbar-thin min-h-0 flex-1 overflow-x-hidden overflow-y-auto pt-4">
         <p className="px-4 pb-1 text-xs text-muted-foreground">{t.history}</p>
         <ConversationList
           activeId={search.get("c")}
@@ -305,7 +305,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="max-h-80 w-72 overflow-y-auto"
+                  className="scrollbar-thin max-h-80 w-72 overflow-y-auto"
                 >
                   <DropdownMenuLabel>{t.notifications}</DropdownMenuLabel>
                   {work.isError ? (
@@ -337,14 +337,14 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
             </div>
           </header>
           <div
-            className={`min-h-0 flex-1 ${isChat ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}
+            className={`min-h-0 flex-1 ${isChat ? "flex flex-col overflow-hidden" : "scrollbar-thin overflow-y-auto"}`}
           >
             {children}
           </div>
         </div>
       </div>
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+        <DialogContent className="scrollbar-thin max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.profile}</DialogTitle>
           </DialogHeader>
