@@ -10,7 +10,9 @@ The shared entrepreneur shell provides a borderless header with My Business/Lear
 
 The to-do list includes personal tasks and all assigned business actions, including completed assignments. Personal tasks support Assigned, In progress, and Completed; business tasks retain their existing help/status controls and progress counts. Business, This week, and Business actions cards have been removed. Greetings use the linked account display name or demo persona name, never the business name; unnamed guests receive a generic greeting.
 
-The sample-card toggle previews fixed money/customer figures only. It never inserts ledger data. Existing demo-persona learning/actions remain labeled; new manual records and memory use the current browser profile rather than the shared demo persona.
+The dashboard visualizes monthly income/expenses per currency, task completion across personal and assigned work, learning progress in the selected language, dated customer additions and follow-ups, and 91 days of consistency. Financial summary cards use server ledger totals; chart coordinates use numeric daily aggregates.
+
+The flask toggle previews a complete sample set of money charts, task/learning progress, customers, and consistency, all explicitly labeled Sample. Totals derive from the same sample records as their charts. The editable task list and record tables continue to show real data and are labeled accordingly. Previewing never inserts ledger or customer records. Existing demo-persona learning/actions remain labeled; new manual records and memory use the current browser profile rather than the shared demo persona.
 
 ## Memory
 

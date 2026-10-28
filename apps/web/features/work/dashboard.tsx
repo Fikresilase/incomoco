@@ -1,20 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  FlaskConical,
-  Check,
-  ChevronRight,
-  Pencil,
-  Plus,
-  Trash2,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { FlaskConical, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -35,23 +23,24 @@ import {
   type Customer,
   type Dashboard,
 } from "./api";
+import {
+  Panel as Card,
+  MetricCard,
+  FinancialOverview,
+  TaskProgress,
+  LearningProgress,
+  CustomerProgress,
+} from "./dashboard-panels";
+import {
+  financialSeries,
+  taskSummary,
+  customerSummary,
+  sampleTransactions,
+  sampleActivity,
+  sampleCustomers,
+} from "./insights";
 import { useWorkCopy } from "./copy";
 
-function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={`rounded-2xl bg-surface p-4 shadow-[0_2px_18px_rgba(11,42,91,0.04)] ring-1 ring-border-soft/60 sm:p-5 ${className}`}
-    >
-      {children}
-    </section>
-  );
-}
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block space-y-1 text-xs font-medium">
@@ -84,9 +73,11 @@ function useSave() {
 function ActivityGrid({
   data,
   today,
+  sample = false,
 }: {
   data: Record<string, number>;
   today: string;
+  sample?: boolean;
 }) {
   const { t } = useWorkCopy();
   const end = new Date(today + "T12:00:00Z");
@@ -102,21 +93,31 @@ function ActivityGrid({
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold">{t.consistency}</h2>
+          <h2 className="text-sm font-semibold">{t.consistency}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{t.activityHint}</p>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {Object.values(data).reduce((a, b) => a + b, 0)}
-        </span>
+        <div className="text-right">
+          <p className="text-lg font-semibold">
+            {Object.values(data).filter((count) => count > 0).length}
+            <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+              {t.activeDays}
+            </span>
+          </p>
+          {sample && (
+            <span className="text-[10px] text-muted-foreground">
+              {t.previewShort}
+            </span>
+          )}
+        </div>
       </div>
       <div className="scrollbar-thin mt-4 overflow-x-auto pb-1">
         <div
-          className="grid w-fit grid-flow-col grid-rows-7 gap-1.5"
+          className="grid w-full min-w-[300px] grid-flow-col grid-rows-7 gap-1.5"
           role="group"
           aria-label={t.consistency}
         >
           {Array.from({ length: padding }, (_, i) => (
-            <span key={`padding-${i}`} className="size-4" />
+            <span key={`padding-${i}`} className="h-4" />
           ))}
           {dates.map((day) => {
             const count = data[day] ?? 0;
@@ -126,7 +127,7 @@ function ActivityGrid({
                 tabIndex={0}
                 title={`${day}: ${count}`}
                 aria-label={`${day}: ${count}`}
-                className={`size-4 rounded-[4px] focus-visible:outline-2 focus-visible:outline-brand-primary ${count >= 4 ? "bg-brand-primary" : count >= 2 ? "bg-success" : count ? "bg-success/40" : "bg-muted"}`}
+                className={`h-4 w-full rounded-[4px] focus-visible:outline-2 focus-visible:outline-brand-primary ${count >= 4 ? "bg-brand-primary" : count >= 2 ? "bg-success" : count ? "bg-success/40" : "bg-muted"}`}
               />
             );
           })}
@@ -188,8 +189,8 @@ function Todos({ data }: { data: WorkData }) {
       .catch(() => {});
   }
   return (
-    <Card>
-      <h2 className="font-semibold">{t.todos}</h2>
+    <Card className="h-full">
+      <h2 className="text-sm font-semibold">{t.todos}</h2>
       <form onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-2">
         <div className="min-w-40 flex-1">
           <Input
@@ -594,6 +595,7 @@ export function WorkDashboard() {
   }, []);
   const [month, setMonth] = useState("");
   const [sample, setSample] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [editor, setEditor] = useState<Editor | null>(null);
   const save = useSave();
   const q = useQuery({
@@ -607,13 +609,65 @@ export function WorkDashboard() {
   const lessons = useQuery({
     queryKey: ["learning-resources", locale],
     queryFn: () =>
-      apiFetch<{ id: string }[]>(`/learning/resources?language=${locale}`),
+      apiFetch<{ id: string; title: string }[]>(
+        `/learning/resources?language=${locale}`,
+      ),
+  });
+  const assignedActions = useQuery({
+    queryKey: ["business-actions"],
+    queryFn: () => apiFetch<BusinessAction[]>("/me/actions"),
   });
   const data = q.data;
   const d = dashboard.data;
-  const totals = sample
-    ? { ETB: { income: "18500", expense: "6200" } }
-    : (data?.totals ?? {});
+  const entries =
+    sample && data
+      ? sampleTransactions(data.month)
+      : (data?.transactions ?? []);
+  const currencies = [
+    ...new Set(entries.map((entry) => entry.currency)),
+  ].sort();
+  const currency = currencies.includes(selectedCurrency)
+    ? selectedCurrency
+    : (currencies[0] ?? "ETB");
+  const points = financialSeries(entries, data?.month ?? "2000-01", currency);
+  const income = sample
+    ? points.reduce((sum, point) => sum + point.income, 0)
+    : Number(data?.totals[currency]?.income ?? 0);
+  const expense = sample
+    ? points.reduce((sum, point) => sum + point.expense, 0)
+    : Number(data?.totals[currency]?.expense ?? 0);
+  const entryCount = entries.filter(
+    (entry) => entry.currency === currency,
+  ).length;
+  const counts = sample
+    ? {
+        assigned: 2,
+        inProgress: 4,
+        completed: 8,
+        needsHelp: 0,
+        total: 14,
+        percent: 57,
+      }
+    : taskSummary(data?.todos ?? [], assignedActions.data ?? []);
+  const customerStats = customerSummary(
+    sample && data
+      ? sampleCustomers(data.month, data.today)
+      : (data?.customers ?? []),
+    data?.month ?? "2000-01",
+    data?.today ?? "2000-01-01",
+  );
+  const completedIds = new Set(
+    d?.completed_lessons.map((lesson) => lesson.id) ?? [],
+  );
+  const completedLessons = sample
+    ? 6
+    : (lessons.data ?? []).filter((lesson) => completedIds.has(lesson.id))
+        .length;
+  const totalLessons = sample ? 10 : (lessons.data?.length ?? 0);
+  const currentLesson = sample
+    ? { id: "sample", title: t.sampleLesson }
+    : (lessons.data?.find((lesson) => lesson.id === d?.current_lesson?.id) ??
+      lessons.data?.find((lesson) => !completedIds.has(lesson.id)));
   const money = (amount: string | number, currency: string) =>
     `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(Number(amount))} ${currency}`;
   function remove(collection: string, id: string) {
@@ -621,10 +675,10 @@ export function WorkDashboard() {
       save.mutate({ path: `/me/work/${collection}/${id}`, method: "DELETE" });
   }
   return (
-    <main className="mx-auto max-w-[1280px] space-y-3 px-3 py-1 sm:px-4">
+    <main className="mx-auto max-w-[1440px] space-y-4 px-3 py-2 pb-6 sm:px-5">
       <h1 className="sr-only">{t.business}</h1>
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <p className="text-sm font-medium">
+        <p className="text-base font-semibold tracking-tight">
           {hour === null
             ? t.hello
             : hour < 12
@@ -636,6 +690,14 @@ export function WorkDashboard() {
             ? `, ${d.profile_name.trim().split(/\s+/)[0]}`
             : ""}
         </p>
+        {sample && (
+          <span
+            role="status"
+            className="rounded-full bg-surface-coral px-2 py-1 text-[10px] font-medium leading-4 text-brand-accent"
+          >
+            {t.sampleLabel}
+          </span>
+        )}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Input
             type="month"
@@ -662,11 +724,6 @@ export function WorkDashboard() {
           {t.demoNotice}
         </p>
       )}
-      {sample && (
-        <p role="status" className="text-xs font-semibold text-brand-accent">
-          {t.sampleLabel}
-        </p>
-      )}
       {q.isPending ? (
         <p aria-busy="true">{t.loading}</p>
       ) : q.isError ? (
@@ -680,114 +737,98 @@ export function WorkDashboard() {
         data && (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                [t.income, "income", ArrowDownLeft],
-                [t.expense, "expense", ArrowUpRight],
-                [t.net, "net", Wallet],
-              ].map(([label, kind, Icon]) => {
-                const MetricIcon = Icon as typeof Wallet;
-                return (
-                  <Card key={String(kind)}>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{String(label)}</span>
-                      <MetricIcon className="size-4" />
-                    </div>
-                    <div className="mt-3 space-y-1">
-                      {Object.entries(totals).length ? (
-                        Object.entries(totals).map(([currency, amounts]) => (
-                          <p
-                            key={currency}
-                            className="text-xl font-semibold tracking-tight"
-                          >
-                            {money(
-                              kind === "net"
-                                ? Number(amounts.income) -
-                                    Number(amounts.expense)
-                                : kind === "income"
-                                  ? amounts.income
-                                  : amounts.expense,
-                              currency,
-                            )}
-                          </p>
-                        ))
-                      ) : (
-                        <p className="text-xl font-semibold">—</p>
-                      )}
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {sample ? t.sampleLabel : data.month}
-                    </p>
-                  </Card>
-                );
-              })}
-              <Card>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{t.customers}</span>
-                  <Users className="size-4" />
-                </div>
-                <p className="mt-3 text-2xl font-semibold">
-                  {sample ? 28 : data.customer_count}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {sample ? t.sampleLabel : t.allCustomers}
-                </p>
-              </Card>
+              <MetricCard
+                label={t.income}
+                value={entryCount ? money(income, currency) : "—"}
+                caption={`${entryCount} ${t.entriesRecorded}`}
+                kind="income"
+                points={points.map((point) => point.income)}
+                sample={sample}
+              />
+              <MetricCard
+                label={t.expense}
+                value={entryCount ? money(expense, currency) : "—"}
+                caption={data.month}
+                kind="expense"
+                points={points.map((point) => point.expense)}
+                sample={sample}
+              />
+              <MetricCard
+                label={t.net}
+                value={entryCount ? money(income - expense, currency) : "—"}
+                caption={`${currency} · ${data.month}`}
+                kind="net"
+                points={points.map((point) => point.net)}
+                sample={sample}
+              />
+              <MetricCard
+                label={t.customers}
+                value={String(customerStats.total)}
+                caption={`${customerStats.newThisMonth} ${t.newCustomers.toLowerCase()}`}
+                kind="customers"
+                sample={sample}
+              />
             </div>
-            <>
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1.3fr_1fr]">
+            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+              <FinancialOverview
+                points={points}
+                currency={currency}
+                currencies={currencies}
+                onCurrencyChange={setSelectedCurrency}
+                hasEntries={entryCount > 0}
+                month={data.month}
+                sample={sample}
+                onAdd={() => setEditor({ kind: "transaction" })}
+                formatMoney={money}
+              />
+              <TaskProgress
+                counts={counts}
+                loading={!sample && assignedActions.isPending}
+                error={!sample && assignedActions.isError}
+                retry={() => void assignedActions.refetch()}
+                sample={sample}
+              />
+            </div>
+            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="min-w-0">
+                {sample && (
+                  <p className="mb-2 px-1 text-[10px] text-muted-foreground">
+                    {t.realRecords}
+                  </p>
+                )}
                 <Todos data={data} />
-                <div className="space-y-4">
-                  <Card className="bg-surface-navy">
-                    <h2 className="sr-only">{t.learning}</h2>
-                    {dashboard.isError || lessons.isError ? (
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          void dashboard.refetch();
-                          void lessons.refetch();
-                        }}
-                      >
-                        {t.retry}
-                      </Button>
-                    ) : (
-                      <>
-                        <p className="mt-3 text-xl font-semibold">
-                          {d?.completed_lessons.length ?? 0}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            {" "}
-                            / {lessons.data?.length ?? "—"} {t.completed}
-                          </span>
-                        </p>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
-                          <div
-                            className="h-full rounded-full bg-brand-primary"
-                            style={{
-                              width: `${Math.min(100, (100 * (d?.completed_lessons.length ?? 0)) / Math.max(1, lessons.data?.length ?? 0))}%`,
-                            }}
-                          />
-                        </div>
-                        <p className="mt-4 text-sm">
-                          {d?.current_lesson?.title ?? t.learn}
-                        </p>
-                        <Button asChild variant="ghost" className="mt-2 -ml-3">
-                          <Link
-                            href={
-                              d?.current_lesson
-                                ? `/learning/resources/${d.current_lesson.id}`
-                                : "/work/learn"
-                            }
-                          >
-                            {t.continue}
-                            <ChevronRight className="size-4" />
-                          </Link>
-                        </Button>
-                      </>
-                    )}
-                  </Card>
-                </div>
               </div>
-              <ActivityGrid data={data.activity} today={data.today} />
-            </>
+              <LearningProgress
+                completed={completedLessons}
+                total={totalLessons}
+                lesson={currentLesson}
+                loading={!sample && (lessons.isPending || dashboard.isPending)}
+                error={!sample && (lessons.isError || dashboard.isError)}
+                retry={() => {
+                  void lessons.refetch();
+                  void dashboard.refetch();
+                }}
+                sample={sample}
+              />
+              <CustomerProgress
+                summary={customerStats}
+                sample={sample}
+                onAdd={() => setEditor({ kind: "customer" })}
+              />
+            </div>
+            <ActivityGrid
+              data={sample ? sampleActivity(data.today) : data.activity}
+              today={data.today}
+              sample={sample}
+            />
+            <div className="flex items-center justify-between px-1 pt-1">
+              <h2 className="text-sm font-semibold">{t.yourRecords}</h2>
+              {sample && (
+                <span className="rounded-full bg-surface-navy px-2 py-1 text-[10px] text-muted-foreground">
+                  {t.realRecords}
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
               <Card>
                 <div className="flex flex-wrap items-center justify-between gap-2">

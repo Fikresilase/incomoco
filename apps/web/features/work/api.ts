@@ -16,6 +16,7 @@ export type Transaction = {
 };
 export type Customer = {
   id: string;
+  created_at: string;
   name: string;
   contact: string;
   notes: string;
