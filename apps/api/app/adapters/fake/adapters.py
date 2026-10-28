@@ -37,6 +37,11 @@ class FakeLLM:
     async def complete(self, messages, *, temperature=0.2, max_tokens=None, extra=None) -> str:
         prompt = _last_user_text(messages)
         system = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
+        if "MEMORY_EXTRACT" in system:
+            import json
+            text = json.loads(prompt)["user_message"]
+            match = re.search(r"my business (?:name is|is called) (.{1,200})", text, re.I)
+            return json.dumps({"business_name": match.group(1).strip().rstrip(".")} if match else {})
         if '"route"' in system:
             latest = prompt.rsplit("Latest message:", 1)[-1].lower()
             if any(w in latest for w in ("hello", "hi ", "thank", "how are you")):

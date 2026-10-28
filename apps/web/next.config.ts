@@ -7,14 +7,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "*.lhr.life", "*.*.ts.net"],
   cacheComponents: true,
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
   // Turbopack ignores WATCHPACK_POLLING; Docker Compose sets it for bind mounts on
   // Windows/macOS where native file events don't reach the container, so poll instead.
   ...(process.env.WATCHPACK_POLLING === "true"

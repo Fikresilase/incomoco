@@ -113,7 +113,12 @@ class ChatService:
                 conversation.id, text, requested_lang or conversation.lang or detect_lang(text), modality
             )
 
-        profile_context = await EntrepreneurContextService().context_for_guest(db, session_id)
+        profile_service = EntrepreneurContextService()
+        profile = await profile_service.get_or_create_guest(db, session_id)
+        if not regenerate:
+            from app.services.memory import enqueue_memory
+            await enqueue_memory(db, profile.id, user_message.id)
+        profile_context = await profile_service.context_for_guest(db, session_id)
         await repo.touch_conversation(conversation.id, lang=coerce_lang(lang))
         await db.commit()
         return TurnContext(

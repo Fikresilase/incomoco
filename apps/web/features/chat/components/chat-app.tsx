@@ -1,7 +1,6 @@
 "use client";
 
-import { AlertCircle, Menu, SquarePen } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -14,25 +13,14 @@ import {
 } from "react";
 import { OfflineBanner } from "@/components/offline-banner";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { useLocaleSwitch } from "@/lib/i18n/provider";
-import { apiFetch } from "@/lib/api";
 import { useChat } from "../hooks/use-chat";
 import { useReadAloud } from "../hooks/use-read-aloud";
-import { EntrepreneurProfilePanel } from "@/features/entrepreneur/components/profile-panel";
-import { EntrepreneurNav } from "@/features/entrepreneur/components/entrepreneur-nav";
+import { useChatNavigation } from "@/features/work/app-shell";
 import type { ComposerToolsContext } from "../types";
 import { Composer, type ComposerHandle } from "./composer";
-import { ConversationList } from "./conversation-list";
 import { EmptyState } from "./empty-state";
 import { Thread } from "./thread";
 
@@ -41,36 +29,12 @@ export interface ChatAppProps {
   ComposerTools?: ComponentType<{ ctx: ComposerToolsContext }>;
 }
 
-type AdviserContext = {
-  business_name: string | null;
-  today_priority: string;
-};
-const focusLabel = { am: "የአሁኑ ትኩረት", en: "Current focus", om: "Xiyyeeffannoo ammaa", so: "Diiradda hadda" } as const;
-
-function IconAction({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={label} onClick={onClick}>
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function ThreadSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8 px-4 pt-8 sm:px-6" aria-busy="true">
+    <div
+      className="mx-auto w-full max-w-3xl space-y-8 px-4 pt-8 sm:px-6"
+      aria-busy="true"
+    >
       <Skeleton className="ml-auto h-10 w-2/3 rounded-2xl" />
       <div className="space-y-2">
         <Skeleton className="h-4 w-full" />
@@ -88,15 +52,11 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
   const online = useOnlineStatus();
   const { locale } = useLocaleSwitch();
   const readAloud = useReadAloud(locale);
-  const adviserContext = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => apiFetch<AdviserContext>("/me/dashboard"),
-  });
   const composerRef = useRef<ComposerHandle>(null);
 
   const [input, setInput] = useState("");
   const [fromDictation, setFromDictation] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const navigationRef = useChatNavigation();
 
   const { selectConversation, send, refreshAfterVoice, conversationId } = chat;
 
@@ -120,7 +80,6 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
 
   const newChat = useCallback(() => {
     selectConversation(null);
-    setDrawerOpen(false);
     setInput("");
     setFromDictation(false);
     requestAnimationFrame(() => composerRef.current?.focus());
@@ -129,22 +88,23 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
   const openConversation = useCallback(
     (id: string) => {
       selectConversation(id);
-      setDrawerOpen(false);
     },
-    [selectConversation]
+    [selectConversation],
   );
 
   const onDeleted = useCallback(
     (id: string) => {
       if (id === conversationId) newChat();
     },
-    [conversationId, newChat]
+    [conversationId, newChat],
   );
 
   const insertText = useCallback((text: string) => {
     const clean = text.trim();
     if (!clean) return;
-    setInput((prev) => (prev.trim() ? `${prev.replace(/\s+$/, "")} ${clean}` : clean));
+    setInput((prev) =>
+      prev.trim() ? `${prev.replace(/\s+$/, "")} ${clean}` : clean,
+    );
     setFromDictation(true);
     requestAnimationFrame(() => composerRef.current?.focus());
   }, []);
@@ -157,32 +117,27 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
       insertText,
       onLiveTalkEnded: refreshAfterVoice,
     }),
-    [conversationId, chat.streaming, online, insertText, refreshAfterVoice, locale]
+    [
+      conversationId,
+      chat.streaming,
+      online,
+      insertText,
+      refreshAfterVoice,
+      locale,
+    ],
   );
 
-  const sidebarBody = (
-    <>
-      <div className="px-3 pb-2">
-        <Button variant="outline" className="w-full justify-start" onClick={newChat}>
-          <SquarePen />
-          {t("chat.newChat")}
-        </Button>
-      </div>
-      <nav aria-label={t("chat.conversations")} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto pb-3">
-        <h2 className="px-5 pt-3 pb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-          {t("chat.conversations")}
-        </h2>
-        <ConversationList
-          activeId={conversationId}
-          onSelect={openConversation}
-          onDeleted={onDeleted}
-        />
-      </nav>
-      <div className="border-t border-border px-5 py-3">
-        <EntrepreneurProfilePanel />
-      </div>
-    </>
-  );
+  useEffect(() => {
+    if (!navigationRef) return;
+    navigationRef.current = {
+      newChat,
+      select: openConversation,
+      deleted: onDeleted,
+    };
+    return () => {
+      navigationRef.current = null;
+    };
+  }, [navigationRef, newChat, openConversation, onDeleted]);
 
   const hasMessages = chat.messages.length > 0;
   const showEmpty = !conversationId && !hasMessages;
@@ -198,9 +153,14 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
     body = (
       <div className="flex flex-1 items-center justify-center px-6">
         <div role="alert" className="max-w-sm text-center">
-          <AlertCircle className="mx-auto mb-3 size-6 text-destructive" aria-hidden />
+          <AlertCircle
+            className="mx-auto mb-3 size-6 text-destructive"
+            aria-hidden
+          />
           <p className="font-semibold text-secondary">
-            {chat.notFound ? t("chat.conversationNotFound") : t("chat.loadConversationError")}
+            {chat.notFound
+              ? t("chat.conversationNotFound")
+              : t("chat.loadConversationError")}
           </p>
           <div className="mt-4 flex justify-center gap-2">
             {!chat.notFound && (
@@ -214,7 +174,12 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
       </div>
     );
   } else if (showEmpty) {
-    body = <EmptyState onPick={(text) => send(text, "text", locale)} disabled={!online} />;
+    body = (
+      <EmptyState
+        onPick={(text) => send(text, "text", locale)}
+        disabled={!online}
+      />
+    );
   } else {
     body = (
       <Thread
@@ -228,8 +193,7 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <EntrepreneurNav active="adviser" />
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <a
         href="#chat-input"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-full focus:bg-secondary focus:px-4 focus:py-2 focus:text-sm focus:text-secondary-foreground"
@@ -237,35 +201,12 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
         {t("common.skipToContent")}
       </a>
 
-      {/* Conversation history stays available without taking space from the adviser. */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="w-[85%] max-w-xs gap-0 bg-surface p-0">
-          <SheetHeader className="h-14 justify-center px-4 py-0">
-            <SheetTitle>{t("chat.conversations")}</SheetTitle>
-            <SheetDescription className="sr-only">{t("chat.conversations")}</SheetDescription>
-          </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col">{sidebarBody}</div>
-        </SheetContent>
-      </Sheet>
-
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-border-soft px-3 py-2 sm:px-6">
-          <h1 className="shrink-0 font-semibold text-secondary">{locale === "am" ? "አማካሪ" : locale === "om" ? "Gorsaa" : locale === "so" ? "La-taliye" : "Adviser"}</h1>
-          {adviserContext.data?.business_name && <div className="min-w-0 border-l border-border-strong pl-3"><p className="truncate text-xs font-medium text-secondary sm:text-sm">{adviserContext.data.business_name}</p><p className="hidden truncate text-xs text-text-secondary sm:block">{focusLabel[locale]}: {adviserContext.data.today_priority}</p></div>}
-          <div className="ml-auto flex items-center gap-1">
-            <IconAction label={t("chat.openSidebar")} onClick={() => setDrawerOpen(true)}>
-              <Menu />
-            </IconAction>
-            <IconAction label={t("chat.newChat")} onClick={newChat}>
-              <SquarePen />
-            </IconAction>
-          </div>
-        </header>
         <OfflineBanner />
 
         <main className="flex min-h-0 flex-1 flex-col" id="main">
           {body}
-          <div className="shrink-0 px-3 pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+4.5rem)] sm:px-6 sm:pb-3">
+          <div className="shrink-0 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:px-6 sm:pb-3">
             <div className="mx-auto w-full max-w-3xl">
               <Composer
                 ref={composerRef}
@@ -275,7 +216,9 @@ export function ChatApp({ ComposerTools }: ChatAppProps) {
                 onStop={chat.stop}
                 streaming={chat.streaming}
                 disabled={!online}
-                tools={ComposerTools ? <ComposerTools ctx={toolsContext} /> : null}
+                tools={
+                  ComposerTools ? <ComposerTools ctx={toolsContext} /> : null
+                }
               />
               <p className="mt-2 text-center text-[11px] leading-4 text-muted-foreground">
                 {t("chat.disclaimer")}

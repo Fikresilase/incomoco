@@ -65,7 +65,7 @@ async def transition_action(action_id: uuid.UUID, transition: str, request: Requ
     action.status = {"start": "started", "complete": "completed", "needs-help": "needs_help"}[transition]
     if transition == "start":
         action.started_at = utcnow()
-    if transition == "complete":
+    if transition == "complete" and not action.completed_at:
         action.completed_at = utcnow()
         if action.skill_id:
             db.add(SkillEvidence(profile_id=profile.id, skill_id=action.skill_id, evidence_type="business_action_completed", result="positive", source_reference=str(action.id)))

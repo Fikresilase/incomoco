@@ -20,6 +20,8 @@ from app.api.v1 import (
     learning,
     learning_admin,
     voice,
+    work,
+    memory,
 )
 from app.core.config import get_settings
 from app.core.container import build_container
@@ -69,7 +71,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    for router in (chat.router, voice.router, entrepreneur.router, dashboard.router, learning.router, learning_admin.router, adviser_admin.router, admin_auth.router, auth.router, documents.router, analytics.router):
+    for router in (work.router, memory.router, chat.router, voice.router, entrepreneur.router, dashboard.router, learning.router, learning_admin.router, adviser_admin.router, admin_auth.router, auth.router, documents.router, analytics.router):
         app.include_router(router, prefix="/api/v1")
 
     @app.get("/health", tags=["health"])

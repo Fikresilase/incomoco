@@ -1,13 +1,16 @@
 """SQLAlchemy ORM models: the 11 tables in design doc §7.2."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
+    Numeric,
     Float,
     ForeignKey,
     Index,
@@ -514,4 +517,69 @@ class LearningEvent(Base):
     message_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id", ondelete="SET NULL"))
     resource_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="SET NULL"))
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = _ts()
+
+
+class WorkTodo(Base):
+    __tablename__ = "work_todos"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(240))
+    due_date: Mapped[date | None] = mapped_column(Date)
+    completed_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    created_at: Mapped[datetime] = _ts()
+
+
+class BusinessTransaction(Base):
+    __tablename__ = "business_transactions"
+    __table_args__ = (CheckConstraint("kind IN ('income','expense')", name="ck_transaction_kind"), CheckConstraint("amount > 0", name="ck_transaction_amount"))
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(8))
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3))
+    description: Mapped[str] = mapped_column(String(240))
+    occurred_on: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = _ts()
+
+
+class BusinessCustomer(Base):
+    __tablename__ = "business_customers"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    contact: Mapped[str] = mapped_column(String(240), default="")
+    notes: Mapped[str] = mapped_column(String(2000), default="")
+    follow_up_on: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = _ts()
+
+
+class WorkActivity(Base):
+    __tablename__ = "work_activity"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(32))
+    source_id: Mapped[str] = mapped_column(String(80), unique=True)
+    created_at: Mapped[datetime] = _ts()
+
+
+class CustomerMemory(Base):
+    __tablename__ = "customer_memories"
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), primary_key=True)
+    facts: Mapped[dict] = mapped_column(JSONB, default=dict)
+    suppressed: Mapped[list] = mapped_column(JSONB, default=list)
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    next_sync_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    corrected_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+    synced_revision: Mapped[int] = mapped_column(Integer, default=-1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = _ts()
+
+
+class MemoryJob(Base):
+    __tablename__ = "memory_jobs"
+    message_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id", ondelete="CASCADE"), primary_key=True)
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    available_at: Mapped[datetime] = _ts()
     created_at: Mapped[datetime] = _ts()

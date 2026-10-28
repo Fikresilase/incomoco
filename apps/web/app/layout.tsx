@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense, type ReactNode } from "react";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Providers } from "@/components/providers";
+import { AppShell } from "@/features/work/app-shell";
 import { IntlRoot } from "@/lib/i18n/root";
 import "./globals.css";
 
@@ -23,7 +24,10 @@ export const viewport: Viewport = {
 
 function BootSplash() {
   return (
-    <div className="flex min-h-dvh items-center justify-center" aria-busy="true">
+    <div
+      className="flex min-h-dvh items-center justify-center"
+      aria-busy="true"
+    >
       <Wordmark className="animate-pulse text-2xl" />
     </div>
   );
@@ -31,15 +35,13 @@ function BootSplash() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="en"
-      className="h-full"
-      suppressHydrationWarning
-    >
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="min-h-dvh" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={<BootSplash />}>
-            <IntlRoot>{children}</IntlRoot>
+            <IntlRoot>
+              <AppShell>{children}</AppShell>
+            </IntlRoot>
           </Suspense>
         </Providers>
       </body>

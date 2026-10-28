@@ -14,6 +14,7 @@ from app.core.db import SessionFactory
 from app.core.logging import setup_logging
 from app.repositories.document_repo import DocumentRepository
 from app.services.analytics_service import AnalyticsService
+from app.services.memory import MemoryWorker
 from app.workers.ingest_worker import IngestionWorker
 
 logger = logging.getLogger("worker")
@@ -25,6 +26,7 @@ async def main() -> None:
     container = await asyncio.to_thread(build_container, settings)
     worker = IngestionWorker(container)
     analytics = AnalyticsService(container)
+    memory = MemoryWorker(container)
     stop = asyncio.Event()
 
     loop = asyncio.get_running_loop()
@@ -43,7 +45,8 @@ async def main() -> None:
     try:
         while not stop.is_set():
             try:
-                busy = await worker.run_once()
+                memory_busy = await memory.run_once()
+                busy = await worker.run_once() or memory_busy
                 if time.monotonic() >= next_gap_report:
                     next_gap_report = time.monotonic() + settings.gap_report_interval_minutes * 60
                     async with SessionFactory() as db:

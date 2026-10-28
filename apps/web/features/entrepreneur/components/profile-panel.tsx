@@ -1,44 +1,88 @@
 "use client";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type FormEvent } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getEntrepreneurProfile, updateEntrepreneurProfile, type BusinessStage } from "../api";
+import {
+  getEntrepreneurProfile,
+  updateEntrepreneurProfile,
+  type BusinessStage,
+} from "../api";
+import { useWorkCopy } from "@/features/work/copy";
+import { MemoryPanel } from "@/features/work/memory-panel";
 
 export function EntrepreneurProfilePanel() {
-  const queryClient = useQueryClient();
-  const profile = useQuery({ queryKey: ["entrepreneur-profile"], queryFn: getEntrepreneurProfile });
-  const [type, setType] = useState("");
-  const [description, setDescription] = useState("");
-  const [stage, setStage] = useState<BusinessStage | "">("");
-  const mutation = useMutation({
-    mutationFn: () => updateEntrepreneurProfile({ business_type: type || null, business_description: description || null, business_stage: stage || null, onboarding_completed: true }),
-    onSuccess: (data) => queryClient.setQueryData(["entrepreneur-profile"], data),
+  const { t } = useWorkCopy();
+  const client = useQueryClient();
+  const profile = useQuery({
+    queryKey: ["entrepreneur-profile"],
+    queryFn: getEntrepreneurProfile,
   });
-
-  if (profile.isPending) return <p className="px-1 text-xs text-muted-foreground">Loading profile...</p>;
-  if (profile.isError) return <p className="px-1 text-xs text-destructive">Profile unavailable</p>;
-  const current = profile.data;
+  const mutation = useMutation({
+    mutationFn: updateEntrepreneurProfile,
+    onSuccess: (data) => {
+      client.setQueryData(["entrepreneur-profile"], data);
+      void client.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success(t.saved);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  if (profile.isPending) return <p aria-busy="true">{t.loading}</p>;
+  if (profile.isError)
+    return <Button onClick={() => void profile.refetch()}>{t.retry}</Button>;
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    mutation.mutate({
+      business_name: String(form.get("name")).trim() || null,
+      business_type: String(form.get("type")).trim() || null,
+      business_description: String(form.get("description")).trim() || null,
+      business_stage: (String(form.get("stage")) ||
+        null) as BusinessStage | null,
+    });
+  }
   return (
-    <details className="border-t border-border px-4 py-3">
-      <summary className="cursor-pointer text-sm font-semibold text-secondary">
-        {current.identity_type === "guest" ? "Guest entrepreneur profile" : "Entrepreneur profile"}
-      </summary>
-      <div className="mt-3 space-y-2">
-        <Input defaultValue={current.business_type ?? ""} onChange={(e) => setType(e.target.value)} placeholder="Business type (optional)" maxLength={120} />
-        <Input defaultValue={current.business_description ?? ""} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your business (optional)" maxLength={2000} />
-        <Select defaultValue={current.business_stage ?? undefined} onValueChange={(value) => setStage(value as BusinessStage)}>
-          <SelectTrigger aria-label="Business stage"><SelectValue placeholder="Business stage" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="idea">Idea</SelectItem><SelectItem value="startup">Startup</SelectItem><SelectItem value="operating">Operating</SelectItem><SelectItem value="growing">Growing</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving..." : "Save profile"}
+    <div className="space-y-6">
+      <form onSubmit={save} key={profile.data.updated_at} className="space-y-3">
+        {[
+          ["name", t.businessName, profile.data.business_name, 200],
+          ["type", t.businessType, profile.data.business_type, 120],
+          [
+            "description",
+            t.businessDescription,
+            profile.data.business_description,
+            2000,
+          ],
+        ].map(([name, label, value, max]) => (
+          <label key={String(name)} className="block text-xs font-medium">
+            {label}
+            <Input
+              name={String(name)}
+              defaultValue={String(value ?? "")}
+              maxLength={Number(max)}
+              className="mt-1"
+            />
+          </label>
+        ))}
+        <label className="block text-xs font-medium">
+          {t.stage}
+          <select
+            name="stage"
+            defaultValue={profile.data.business_stage ?? ""}
+            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm"
+          >
+            <option value="">—</option>
+            {["idea", "startup", "operating", "growing"].map((stage) => (
+              <option key={stage}>{stage}</option>
+            ))}
+          </select>
+        </label>
+        <Button size="sm" disabled={mutation.isPending}>
+          {t.save}
         </Button>
-      </div>
-    </details>
+      </form>
+      <MemoryPanel />
+    </div>
   );
 }

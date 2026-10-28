@@ -1,50 +1,57 @@
 "use client";
-
+import { Globe } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLocaleSwitch } from "@/lib/i18n/provider";
-import type { Locale } from "@/lib/i18n/config";
-
-const OPTIONS: { value: Locale; label: string; lang: string }[] = [
-  { value: "en", label: "EN", lang: "en" },
-  { value: "am", label: "አማ", lang: "am" },
-  { value: "om", label: "OR", lang: "om" },
-  { value: "so", label: "SO", lang: "so" },
+import { isLocale } from "@/lib/i18n/config";
+const options = [
+  { value: "am", label: "አማርኛ" },
+  { value: "en", label: "English" },
+  { value: "om", label: "Afaan Oromoo" },
+  { value: "so", label: "Soomaali" },
 ];
-
-/** EN/አማ segmented toggle. The choice is remembered per browser. */
 export function LocaleToggle({ className }: { className?: string }) {
   const { locale, setLocale } = useLocaleSwitch();
   const t = useTranslations("common");
   return (
-    <div
-      role="group"
-      aria-label={t("language")}
-      className={cn(
-        "inline-flex h-8 items-center rounded-full border border-border-soft bg-surface p-0.5",
-        className
-      )}
-    >
-      {OPTIONS.map((option) => {
-        const active = option.value === locale;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={active}
-            lang={option.lang}
-            onClick={() => setLocale(option.value)}
-            className={cn(
-              "h-full min-w-10 rounded-full px-2.5 text-xs font-bold transition-colors focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none",
-              active
-                ? "bg-surface-navy text-brand-primary"
-                : "text-secondary hover:bg-muted"
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={className}
+          aria-label={t("language")}
+          title={t("language")}
+        >
+          <Globe className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuRadioGroup
+          value={locale}
+          onValueChange={(value) => {
+            if (isLocale(value)) setLocale(value);
+          }}
+        >
+          {options.map((option) => (
+            <DropdownMenuRadioItem
+              key={option.value}
+              value={option.value}
+              lang={option.value}
+              className="min-h-10"
+            >
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
