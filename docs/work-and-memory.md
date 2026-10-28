@@ -1,6 +1,6 @@
 # Work dashboard and customer memory
 
-The shared entrepreneur shell provides a borderless header, globe language menu, notifications for due to-dos/customer follow-ups, collapsible sidebar, chat history, and bottom profile control. `/work`, `/work/learn`, and `/work/business` contain Today, Learn, and My Business. Existing `/home` and `/my-business` links redirect into Work; existing lesson URLs remain valid.
+The shared entrepreneur shell provides a borderless header, globe language menu, notifications for due to-dos/customer follow-ups, collapsible sidebar, chat history, and bottom profile control. `/work` and `/work/learn` contain My Business and Learn. My Business combines the main dashboard, business goals/skills, and manual records. Existing `/home`, `/my-business`, and `/work/business` links redirect to `/work`; existing lesson URLs remain valid.
 
 ## Work records
 

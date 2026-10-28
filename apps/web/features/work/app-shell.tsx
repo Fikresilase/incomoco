@@ -114,7 +114,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         id: customer.id,
         title: customer.name,
         date: customer.follow_up_on,
-        href: "/work/business",
+        href: "/work",
       })) ?? []),
   ];
   function navigateConversation(id?: string) {
@@ -331,18 +331,13 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function WorkTabs({
-  active,
-}: {
-  active: "today" | "learn" | "business";
-}) {
+export function WorkTabs({ active }: { active: "business" | "learn" }) {
   const { t } = useWorkCopy();
   return (
     <nav aria-label={t.work} className="mb-5 flex gap-1">
       {[
-        ["today", "/work", t.today, BriefcaseBusiness],
+        ["business", "/work", t.business, BriefcaseBusiness],
         ["learn", "/work/learn", t.learn, BookOpen],
-        ["business", "/work/business", t.business, UserRound],
       ].map(([key, href, label, Icon]) => {
         const ItemIcon = Icon as typeof BriefcaseBusiness;
         return (

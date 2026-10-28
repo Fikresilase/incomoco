@@ -1,2 +1,5 @@
 import { redirect } from "next/navigation";
-export default function BusinessPage() { redirect("/work/business"); }
+
+export default function BusinessPage() {
+  redirect("/work");
+}

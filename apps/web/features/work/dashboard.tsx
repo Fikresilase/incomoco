@@ -453,7 +453,7 @@ function RecordEditor({
   );
 }
 
-export function WorkDashboard({ business = false }: { business?: boolean }) {
+export function WorkDashboard() {
   const { t, locale } = useWorkCopy();
   const [month, setMonth] = useState("");
   const [sample, setSample] = useState(false);
@@ -485,7 +485,7 @@ export function WorkDashboard({ business = false }: { business?: boolean }) {
   }
   return (
     <main className="mx-auto max-w-[1280px] space-y-5 px-4 py-4 sm:px-6">
-      <WorkTabs active={business ? "business" : "today"} />
+      <WorkTabs active="business" />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-muted-foreground">
@@ -499,7 +499,7 @@ export function WorkDashboard({ business = false }: { business?: boolean }) {
               : t.today}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {business ? t.business : t.welcome}
+            {t.business}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -545,7 +545,6 @@ export function WorkDashboard({ business = false }: { business?: boolean }) {
       ) : (
         data && (
           <>
-            {business && <BusinessOverview />}
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 [t.income, "income", ArrowDownLeft],
@@ -600,111 +599,106 @@ export function WorkDashboard({ business = false }: { business?: boolean }) {
                 </p>
               </Card>
             </div>
-            {!business && (
-              <>
-                <div className="grid items-start gap-4 xl:grid-cols-[1.3fr_1fr]">
-                  <Todos data={data} />
-                  <div className="space-y-4">
-                    <Card className="bg-surface-navy">
-                      <div className="flex items-center justify-between">
-                        <h2 className="font-semibold">{t.learning}</h2>
-                        <BookOpen className="size-4" />
-                      </div>
-                      {dashboard.isError || lessons.isError ? (
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            void dashboard.refetch();
-                            void lessons.refetch();
-                          }}
-                        >
-                          {t.retry}
-                        </Button>
-                      ) : (
-                        <>
-                          <p className="mt-3 text-xl font-semibold">
-                            {d?.completed_lessons.length ?? 0}
-                            <span className="text-sm font-normal text-muted-foreground">
-                              {" "}
-                              / {lessons.data?.length ?? "—"} {t.completed}
-                            </span>
-                          </p>
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
-                            <div
-                              className="h-full rounded-full bg-brand-primary"
-                              style={{
-                                width: `${Math.min(100, (100 * (d?.completed_lessons.length ?? 0)) / Math.max(1, lessons.data?.length ?? 0))}%`,
-                              }}
-                            />
-                          </div>
-                          <p className="mt-4 text-sm">
-                            {d?.current_lesson?.title ?? t.learn}
-                          </p>
-                          <Button
-                            asChild
-                            variant="ghost"
-                            className="mt-2 -ml-3"
+            <>
+              <div className="grid items-start gap-4 xl:grid-cols-[1.3fr_1fr]">
+                <Todos data={data} />
+                <div className="space-y-4">
+                  <Card className="bg-surface-navy">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-semibold">{t.learning}</h2>
+                      <BookOpen className="size-4" />
+                    </div>
+                    {dashboard.isError || lessons.isError ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          void dashboard.refetch();
+                          void lessons.refetch();
+                        }}
+                      >
+                        {t.retry}
+                      </Button>
+                    ) : (
+                      <>
+                        <p className="mt-3 text-xl font-semibold">
+                          {d?.completed_lessons.length ?? 0}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            {" "}
+                            / {lessons.data?.length ?? "—"} {t.completed}
+                          </span>
+                        </p>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
+                          <div
+                            className="h-full rounded-full bg-brand-primary"
+                            style={{
+                              width: `${Math.min(100, (100 * (d?.completed_lessons.length ?? 0)) / Math.max(1, lessons.data?.length ?? 0))}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="mt-4 text-sm">
+                          {d?.current_lesson?.title ?? t.learn}
+                        </p>
+                        <Button asChild variant="ghost" className="mt-2 -ml-3">
+                          <Link
+                            href={
+                              d?.current_lesson
+                                ? `/learning/resources/${d.current_lesson.id}`
+                                : "/work/learn"
+                            }
                           >
-                            <Link
-                              href={
-                                d?.current_lesson
-                                  ? `/learning/resources/${d.current_lesson.id}`
-                                  : "/work/learn"
+                            {t.continue}
+                            <ChevronRight className="size-4" />
+                          </Link>
+                        </Button>
+                      </>
+                    )}
+                  </Card>
+                  <Card>
+                    <h2 className="font-semibold">{t.actions}</h2>
+                    {dashboard.isPending ? (
+                      <p className="mt-3 text-sm" aria-busy="true">
+                        {t.loading}
+                      </p>
+                    ) : dashboard.isError ? (
+                      <Button onClick={() => void dashboard.refetch()}>
+                        {t.retry}
+                      </Button>
+                    ) : d?.next_actions.length ? (
+                      <ul className="mt-2 divide-y divide-border-soft">
+                        {d.next_actions.map((action) => (
+                          <li
+                            key={action.id}
+                            className="flex items-center gap-3 py-2"
+                          >
+                            <span className="flex-1 text-sm">
+                              {action.title}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={save.isPending}
+                              onClick={() =>
+                                save.mutate({
+                                  path: `/me/actions/${action.id}/complete`,
+                                })
                               }
                             >
-                              {t.continue}
-                              <ChevronRight className="size-4" />
-                            </Link>
-                          </Button>
-                        </>
-                      )}
-                    </Card>
-                    <Card>
-                      <h2 className="font-semibold">{t.actions}</h2>
-                      {dashboard.isPending ? (
-                        <p className="mt-3 text-sm" aria-busy="true">
-                          {t.loading}
-                        </p>
-                      ) : dashboard.isError ? (
-                        <Button onClick={() => void dashboard.refetch()}>
-                          {t.retry}
-                        </Button>
-                      ) : d?.next_actions.length ? (
-                        <ul className="mt-2 divide-y divide-border-soft">
-                          {d.next_actions.map((action) => (
-                            <li
-                              key={action.id}
-                              className="flex items-center gap-3 py-2"
-                            >
-                              <span className="flex-1 text-sm">
-                                {action.title}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={save.isPending}
-                                onClick={() =>
-                                  save.mutate({
-                                    path: `/me/actions/${action.id}/complete`,
-                                  })
-                                }
-                              >
-                                {t.done}
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="mt-3 text-sm text-muted-foreground">
-                          {t.noActions}
-                        </p>
-                      )}
-                    </Card>
-                  </div>
+                              {t.done}
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {t.noActions}
+                      </p>
+                    )}
+                  </Card>
                 </div>
-                <ActivityGrid data={data.activity} today={data.today} />
-              </>
-            )}
+              </div>
+              <ActivityGrid data={data.activity} today={data.today} />
+            </>
+            <BusinessOverview />
             <div className="grid items-start gap-4 xl:grid-cols-2">
               <Card>
                 <div className="flex items-center justify-between">

@@ -1,4 +1,5 @@
-import { WorkDashboard } from "@/features/work/dashboard";
+import { redirect } from "next/navigation";
+
 export default function BusinessPage() {
-  return <WorkDashboard business />;
+  redirect("/work");
 }
