@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
@@ -30,11 +30,11 @@ import {
   workKey,
   type WorkData,
   type Todo,
+  type BusinessAction,
   type Transaction,
   type Customer,
   type Dashboard,
 } from "./api";
-import { BusinessOverview } from "./business-overview";
 import { useWorkCopy } from "./copy";
 
 function Card({
@@ -75,6 +75,7 @@ function useSave() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: workKey });
       void client.invalidateQueries({ queryKey: ["dashboard"] });
+      void client.invalidateQueries({ queryKey: ["business-actions"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -148,9 +149,21 @@ function ActivityGrid({
   );
 }
 
+function todoStatus(todo: Todo) {
+  return todo.completed_at
+    ? "completed"
+    : todo.started_at
+      ? "in_progress"
+      : "assigned";
+}
+
 function Todos({ data }: { data: WorkData }) {
   const { t } = useWorkCopy();
   const save = useSave();
+  const actions = useQuery({
+    queryKey: ["business-actions"],
+    queryFn: () => apiFetch<BusinessAction[]>("/me/actions"),
+  });
   const [editing, setEditing] = useState<Todo | null>(null);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
@@ -168,7 +181,7 @@ function Todos({ data }: { data: WorkData }) {
         body: {
           title,
           due_date: due || null,
-          completed: Boolean(editing?.completed_at),
+          status: editing ? todoStatus(editing) : "assigned",
         },
       })
       .then(reset)
@@ -210,7 +223,7 @@ function Todos({ data }: { data: WorkData }) {
       </form>
       <ul className="mt-3 divide-y divide-border-soft">
         {data.todos.map((todo) => (
-          <li key={todo.id} className="flex items-center gap-3 py-2">
+          <li key={todo.id} className="flex flex-wrap items-center gap-2 py-2">
             <input
               type="checkbox"
               aria-label={`${t.done}: ${todo.title}`}
@@ -223,13 +236,13 @@ function Todos({ data }: { data: WorkData }) {
                   body: {
                     title: todo.title,
                     due_date: todo.due_date,
-                    completed: e.target.checked,
+                    status: e.target.checked ? "completed" : "assigned",
                   },
                 })
               }
               className="size-4 accent-brand-primary"
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-32 flex-1">
               <p
                 className={`break-words text-sm ${todo.completed_at ? "text-muted-foreground line-through" : ""}`}
               >
@@ -243,6 +256,27 @@ function Todos({ data }: { data: WorkData }) {
                 </p>
               )}
             </div>
+            <select
+              aria-label={`${t.status}: ${todo.title}`}
+              value={todoStatus(todo)}
+              disabled={save.isPending}
+              className="h-8 max-w-full rounded-lg border border-input bg-background px-2 text-xs"
+              onChange={(e) =>
+                save.mutate({
+                  path: `/me/work/todos/${todo.id}`,
+                  method: "PUT",
+                  body: {
+                    title: todo.title,
+                    due_date: todo.due_date,
+                    status: e.target.value,
+                  },
+                })
+              }
+            >
+              <option value="assigned">{t.assigned}</option>
+              <option value="in_progress">{t.inProgress}</option>
+              <option value="completed">{t.completedStatus}</option>
+            </select>
             <Button
               variant="ghost"
               size="icon"
@@ -272,8 +306,102 @@ function Todos({ data }: { data: WorkData }) {
             </Button>
           </li>
         ))}
+        {actions.data?.map((action) => (
+          <li
+            key={`action-${action.id}`}
+            className="flex flex-wrap items-center gap-2 py-3"
+          >
+            <input
+              type="checkbox"
+              className="size-4 accent-brand-primary"
+              aria-label={`${t.done}: ${action.title}`}
+              checked={action.status === "completed"}
+              disabled={
+                save.isPending ||
+                action.status === "completed" ||
+                action.status === "skipped"
+              }
+              onChange={() =>
+                save.mutate({ path: `/me/actions/${action.id}/complete` })
+              }
+            />
+            <div className="min-w-32 flex-1">
+              <p
+                className={`break-words text-sm ${action.status === "completed" ? "text-muted-foreground line-through" : ""}`}
+              >
+                {action.title}
+              </p>
+              {action.description && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {action.description}
+                </p>
+              )}
+              {action.due_date && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {action.due_date.slice(0, 10)}
+                </p>
+              )}
+              {action.target_count && (
+                <div className="mt-2 space-y-1">
+                  <progress
+                    className="h-1.5 w-full accent-brand-primary"
+                    aria-label={action.title}
+                    value={Math.min(action.progress_count, action.target_count)}
+                    max={action.target_count}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {action.progress_count}/{action.target_count}{" "}
+                    {action.progress_unit}
+                  </p>
+                </div>
+              )}
+            </div>
+            <select
+              aria-label={`${t.status}: ${action.title}`}
+              value={action.status}
+              disabled={
+                save.isPending ||
+                action.status === "completed" ||
+                action.status === "skipped"
+              }
+              className="h-8 max-w-full rounded-lg border border-input bg-background px-2 text-xs"
+              onChange={(e) =>
+                save.mutate({
+                  path: `/me/actions/${action.id}/${({ started: "start", completed: "complete", needs_help: "needs-help" } as Record<string, string>)[e.target.value]}`,
+                })
+              }
+            >
+              <option value="recommended" disabled>
+                {t.assigned}
+              </option>
+              <option value="started">{t.inProgress}</option>
+              <option value="completed">{t.completedStatus}</option>
+              <option value="needs_help">{t.needsHelp}</option>
+              <option value="skipped" disabled>
+                {t.skipped}
+              </option>
+            </select>
+          </li>
+        ))}
       </ul>
-      {!data.todos.length && (
+      {actions.isPending && (
+        <p aria-busy="true" className="mt-3 text-sm text-muted-foreground">
+          {t.loading}
+        </p>
+      )}
+      {actions.isError && (
+        <div role="alert" className="mt-3">
+          <p className="text-sm text-muted-foreground">{t.error}</p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void actions.refetch()}
+          >
+            {t.retry}
+          </Button>
+        </div>
+      )}
+      {!data.todos.length && actions.isSuccess && !actions.data.length && (
         <p className="mt-4 text-sm text-muted-foreground">{t.empty}</p>
       )}
     </Card>
@@ -454,6 +582,16 @@ function RecordEditor({
 
 export function WorkDashboard() {
   const { t, locale } = useWorkCopy();
+  const [hour, setHour] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setHour(new Date().getHours());
+    const initial = window.setTimeout(update, 0);
+    const timer = window.setInterval(update, 60_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
+  }, []);
   const [month, setMonth] = useState("");
   const [sample, setSample] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -485,25 +623,39 @@ export function WorkDashboard() {
   return (
     <main className="mx-auto max-w-[1280px] space-y-3 px-3 py-1 sm:px-4">
       <h1 className="sr-only">{t.business}</h1>
-      <div className="flex min-h-9 flex-wrap items-center justify-between gap-1">
-        <Input
-          type="month"
-          aria-label={t.month}
-          value={month || data?.month || ""}
-          onChange={(e) => setMonth(e.target.value)}
-          className="h-8 w-36 border-0 bg-transparent px-1 text-xs shadow-none"
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          aria-label={sample ? t.live : t.sample}
-          title={sample ? t.live : t.sample}
-          onClick={() => setSample(!sample)}
-          aria-pressed={sample}
-        >
-          <FlaskConical className="size-4" />
-        </Button>
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <p className="text-sm font-medium">
+          {hour === null
+            ? t.hello
+            : hour < 12
+              ? t.morning
+              : hour < 18
+                ? t.afternoon
+                : t.evening}
+          {d?.profile_name?.trim()
+            ? `, ${d.profile_name.trim().split(/\s+/)[0]}`
+            : ""}
+        </p>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Input
+            type="month"
+            aria-label={t.month}
+            value={month || data?.month || ""}
+            onChange={(e) => setMonth(e.target.value)}
+            className="h-8 w-32 border-0 bg-transparent px-1 text-xs shadow-none"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={sample ? t.live : t.sample}
+            title={sample ? t.live : t.sample}
+            onClick={() => setSample(!sample)}
+            aria-pressed={sample}
+          >
+            <FlaskConical className="size-4" />
+          </Button>
+        </div>
       </div>
       {d?.demo_account && (
         <p className="rounded-lg bg-surface-navy px-3 py-2 text-xs text-muted-foreground">
@@ -632,52 +784,10 @@ export function WorkDashboard() {
                       </>
                     )}
                   </Card>
-                  <Card>
-                    <h2 className="font-semibold">{t.actions}</h2>
-                    {dashboard.isPending ? (
-                      <p className="mt-3 text-sm" aria-busy="true">
-                        {t.loading}
-                      </p>
-                    ) : dashboard.isError ? (
-                      <Button onClick={() => void dashboard.refetch()}>
-                        {t.retry}
-                      </Button>
-                    ) : d?.next_actions.length ? (
-                      <ul className="mt-2 divide-y divide-border-soft">
-                        {d.next_actions.map((action) => (
-                          <li
-                            key={action.id}
-                            className="flex items-center gap-3 py-2"
-                          >
-                            <span className="flex-1 text-sm">
-                              {action.title}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={save.isPending}
-                              onClick={() =>
-                                save.mutate({
-                                  path: `/me/actions/${action.id}/complete`,
-                                })
-                              }
-                            >
-                              {t.done}
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {t.noActions}
-                      </p>
-                    )}
-                  </Card>
                 </div>
               </div>
               <ActivityGrid data={data.activity} today={data.today} />
             </>
-            <BusinessOverview />
             <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
               <Card>
                 <div className="flex flex-wrap items-center justify-between gap-2">

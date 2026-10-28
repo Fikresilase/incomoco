@@ -124,6 +124,14 @@ async def overview(
     }
 
 
+def set_todo_status(row, body):
+    status = body.status or ("completed" if body.completed else "assigned")
+    row.started_at = (row.started_at or utcnow()) if status == "in_progress" else row.started_at
+    if status == "assigned":
+        row.started_at = None
+    row.completed_at = (row.completed_at or utcnow()) if status == "completed" else None
+
+
 @router.post("/todos", status_code=201)
 async def create_todo(body: TodoIn, request: Request, db: AsyncSession = Depends(get_db)):
     profile = await EntrepreneurContextService().get_or_create_guest(db, session_id_from(request))
@@ -131,11 +139,11 @@ async def create_todo(body: TodoIn, request: Request, db: AsyncSession = Depends
         profile_id=profile.id,
         title=body.title,
         due_date=body.due_date,
-        completed_at=utcnow() if body.completed else None,
     )
+    set_todo_status(row, body)
     db.add(row)
     await db.flush()
-    if body.completed:
+    if row.completed_at:
         await activity(db, profile.id, "todo", row.id)
     await db.commit()
     return record(row)
@@ -147,8 +155,8 @@ async def update_todo(
 ):
     row = await owned(db, request, WorkTodo, record_id)
     row.title, row.due_date = body.title, body.due_date
-    row.completed_at = (row.completed_at or utcnow()) if body.completed else None
-    if body.completed:
+    set_todo_status(row, body)
+    if row.completed_at:
         await activity(db, row.profile_id, "todo", row.id)
     await db.commit()
     return record(row)

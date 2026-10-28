@@ -526,6 +526,7 @@ class WorkTodo(Base):
     profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(String(240))
     due_date: Mapped[date | None] = mapped_column(Date)
+    started_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
     completed_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
     created_at: Mapped[datetime] = _ts()
 

@@ -308,3 +308,66 @@ async def test_correction_does_not_wait_for_slow_extraction():
         assert (await client.get("/api/v1/me/memory")).json()["facts"]["business_name"][
             "value"
         ] == "Correct now"
+
+
+@pytest.mark.usefixtures("integration_env")
+async def test_unified_tasks_keep_progress_and_dashboard_uses_person_name():
+    from app.core.db import SessionFactory
+    from app.main import create_app
+    from app.repositories.orm import BusinessAction
+
+    app = create_app()
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        profile = (await client.post("/api/v1/guest/session")).json()["profile"]
+        # A business name must not be presented as the person's name.
+        await client.patch("/api/v1/me/entrepreneur-profile", json={"business_name": "Aster Beauty Salon"})
+        assert (await client.get("/api/v1/me/dashboard")).json()["profile_name"] == ""
+        task = (await client.post("/api/v1/me/work/todos", json={"title": "Call supplier"})).json()
+        assert task["started_at"] is None and task["completed_at"] is None
+        active = await client.put(
+            f"/api/v1/me/work/todos/{task['id']}", json={"title": "Call supplier", "status": "in_progress"}
+        )
+        assert active.status_code == 200
+        assert active.json()["started_at"] is not None
+        assert active.json()["completed_at"] is None
+        finished = await client.put(
+            f"/api/v1/me/work/todos/{task['id']}", json={"title": "Call supplier", "status": "completed"}
+        )
+        assert finished.json()["completed_at"] is not None
+        reopened = await client.put(
+            f"/api/v1/me/work/todos/{task['id']}", json={"title": "Call supplier", "status": "assigned"}
+        )
+        assert reopened.json()["completed_at"] is None and reopened.json()["started_at"] is None
+        invalid = await client.put(
+            f"/api/v1/me/work/todos/{task['id']}", json={"title": "Call supplier", "status": "assessed"}
+        )
+        assert invalid.status_code == 422
+        async with SessionFactory() as db:
+            for index in range(4):
+                db.add(
+                    BusinessAction(
+                        profile_id=uuid.UUID(profile["id"]),
+                        title=f"Assigned task {index}",
+                        description="Existing assignment",
+                        status="recommended",
+                        target_count=3,
+                        progress_count=1,
+                    )
+                )
+            await db.commit()
+        tasks = (await client.get("/api/v1/me/actions")).json()
+        assert len(tasks) == 4
+        action_id = tasks[0]["id"]
+        assert tasks[0]["progress_count"] == 1
+        started = await client.post(f"/api/v1/me/actions/{action_id}/start")
+        assert started.json()["status"] == "started"
+        finished = await client.post(f"/api/v1/me/actions/{action_id}/complete")
+        assert finished.json()["status"] == "completed"
+        assert any(
+            task["id"] == action_id and task["status"] == "completed"
+            for task in (await client.get("/api/v1/me/actions")).json()
+        )
+        demo = await client.post("/api/v1/demo/login", json={"persona": "aster"})
+        assert demo.status_code == 200, demo.text
+        assert demo.json()["profile_name"] == "Aster"
+        assert demo.json()["business_name"] == "Aster Beauty Salon"

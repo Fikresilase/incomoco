@@ -3,6 +3,7 @@ export type Todo = {
   id: string;
   title: string;
   due_date: string | null;
+  started_at: string | null;
   completed_at: string | null;
 };
 export type Transaction = {
@@ -29,6 +30,16 @@ export type WorkData = {
   totals: Record<string, { income: string; expense: string }>;
   activity: Record<string, number>;
   customer_count: number;
+};
+export type BusinessAction = {
+  id: string;
+  title: string;
+  description: string;
+  status: "recommended" | "started" | "completed" | "needs_help" | "skipped";
+  due_date: string | null;
+  target_count: number | null;
+  progress_count: number;
+  progress_unit: string | null;
 };
 export type Dashboard = {
   demo_account: boolean;

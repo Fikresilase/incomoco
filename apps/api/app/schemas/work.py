@@ -12,6 +12,7 @@ class TodoIn(BaseModel):
     title: Title
     due_date: date | None = None
     completed: bool = False
+    status: Literal["assigned", "in_progress", "completed"] | None = None
 
 
 class TransactionIn(BaseModel):

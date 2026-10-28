@@ -5,7 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, session_id_from
-from app.repositories.orm import AdviserQueueItem, BusinessAction, EntrepreneurProfile, SkillEvidence, utcnow
+from app.repositories.orm import (
+    AdviserQueueItem,
+    BusinessAction,
+    EntrepreneurProfile,
+    SkillEvidence,
+    UserAccount,
+    utcnow,
+)
 from app.schemas.adviser import SkillStatusOut
 from app.schemas.dashboard import ActionOut, DashboardOut, DemoPersonaIn, GoalOut, LessonOut
 from app.services.adviser import NextBestActionService, SkillStatusService
@@ -52,7 +59,9 @@ async def _dashboard(db: AsyncSession, profile: EntrepreneurProfile):
             return None
         item = progress.get(resource.id)
         return LessonOut(id=resource.id, title=resource.title, description=resource.description, language=resource.language, duration_seconds=resource.duration_seconds, status=item.status if item else "not_started", resource_type=resource.resource_type)
-    return DashboardOut(profile_id=profile.id, demo_account=profile.is_demo, profile_name=profile.business_name or "Entrepreneur", business_name=profile.business_name, business_type=profile.business_type, business_stage=profile.business_stage, language=profile.preferred_language, today_priority=primary.title if primary else (goal.title if goal else (current.title if current else "Choose one small business step")), priority_reason=primary.explanation if primary else (goal.description if goal else (current.description if current else "Your adviser can help you choose a starting point.")), goal=GoalOut.model_validate(goal, from_attributes=True) if goal else None, current_action=ActionOut.model_validate(current, from_attributes=True) if current else None, next_actions=[ActionOut.model_validate(action, from_attributes=True) for action in actions[:3]], current_lesson=lesson_out(current_lesson), next_lesson=lesson_out(next_lesson), completed_lessons=[lesson_out(resource) for resource in completed_resources])
+    account = await db.get(UserAccount, profile.user_id) if profile.user_id else None
+    person_name = profile.demo_key.replace("_", " ").title() if profile.is_demo and profile.demo_key else (account.display_name if account else "")
+    return DashboardOut(profile_id=profile.id, demo_account=profile.is_demo, profile_name=person_name, business_name=profile.business_name, business_type=profile.business_type, business_stage=profile.business_stage, language=profile.preferred_language, today_priority=primary.title if primary else (goal.title if goal else (current.title if current else "Choose one small business step")), priority_reason=primary.explanation if primary else (goal.description if goal else (current.description if current else "Your adviser can help you choose a starting point.")), goal=GoalOut.model_validate(goal, from_attributes=True) if goal else None, current_action=ActionOut.model_validate(current, from_attributes=True) if current else None, next_actions=[ActionOut.model_validate(action, from_attributes=True) for action in actions[:3]], current_lesson=lesson_out(current_lesson), next_lesson=lesson_out(next_lesson), completed_lessons=[lesson_out(resource) for resource in completed_resources])
 
 @router.post("/me/actions/{action_id}/{transition}", response_model=ActionOut)
 async def transition_action(action_id: uuid.UUID, transition: str, request: Request, response: str | None = None, demo_key: str | None = Cookie(default=None, alias=DEMO_COOKIE), db: AsyncSession = Depends(get_db)):

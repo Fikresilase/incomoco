@@ -1,12 +1,14 @@
 # Work dashboard and customer memory
 
-The shared entrepreneur shell provides a borderless header with My Business/Learn segmented navigation in Work, a globe language menu, and notifications for due to-dos/customer follow-ups. The collapsible sidebar aligns the hamburger, New chat, and Work icons, lists conversation titles without message icons, and anchors the profile control at the bottom. A compact month picker sits at the far left beneath the Work header; duplicate page titles, weekday text, and learning introductions are omitted. On narrow screens, the segmented navigation uses a compact second header row and the sidebar remains accessible from an icon rail. `/work` and `/work/learn` contain My Business and Learn. My Business combines the main dashboard, business goals/skills, and manual records. Existing `/home`, `/my-business`, and `/work/business` links redirect to `/work`; existing lesson URLs remain valid.
+The shared entrepreneur shell provides a borderless header with My Business/Learn segmented navigation in Work, a globe language menu, and notifications for due to-dos/customer follow-ups. The collapsible sidebar aligns the hamburger, New chat, and Work icons, lists conversation titles without message icons, and anchors the profile control at the bottom. A local-time greeting sits at the left beneath the Work header, with the month picker at the right immediately before the sample flask; duplicate page titles, weekday text, and learning introductions are omitted. On narrow screens, the segmented navigation uses a compact second header row and the sidebar remains accessible from an icon rail. `/work` and `/work/learn` contain My Business and Learn. My Business combines the main dashboard, learning progress and manual records. Existing `/home`, `/my-business`, and `/work/business` links redirect to `/work`; existing lesson URLs remain valid.
 
 ## Work records
 
 `GET /api/v1/me/work?month=YYYY-MM&timezone=Africa/Nairobi` returns monthly transactions/totals, all customers and to-dos, and 91 days of activity. The browser sends its timezone. Currency totals stay separate and amounts use database `NUMERIC(14,2)` and decimal strings over the API. Net recorded income is entered income less entered expenses, not an accounting profit assessment.
 
 `POST /me/work/{todos,transactions,customers}`, `PUT /me/work/{collection}/{id}`, and `DELETE /me/work/{collection}/{id}` create, edit, and remove session-owned records. Repeat completion of a to-do adds only one activity event. The activity grid also includes existing completed business actions and lessons. Activity from a completed action remains historical if its underlying manual record is subsequently edited or removed.
+
+The to-do list includes personal tasks and all assigned business actions, including completed assignments. Personal tasks support Assigned, In progress, and Completed; business tasks retain their existing help/status controls and progress counts. Business, This week, and Business actions cards have been removed. Greetings use the linked account display name or demo persona name, never the business name; unnamed guests receive a generic greeting.
 
 The sample-card toggle previews fixed money/customer figures only. It never inserts ledger data. Existing demo-persona learning/actions remain labeled; new manual records and memory use the current browser profile rather than the shared demo persona.
 
@@ -22,7 +24,7 @@ Remembered values are passed to the answer generator as user-stated data, never 
 
 ## Running and validation
 
-Apply migration `0018` with `alembic upgrade head`, then restart the API and worker. Start the web service with its updated dependencies. CSS uses the same Tailwind PostCSS integration for development and production; `tzdata` supplies IANA zones on Windows.
+Apply migrations through `0019` with `alembic upgrade head`, then restart the API and worker. Start the web service with its updated dependencies. CSS uses the same Tailwind PostCSS integration for development and production; `tzdata` supplies IANA zones on Windows.
 
 `pytest tests/test_work_memory.py` covers validation, decimal totals, cross-session isolation, idempotent activity, MinIO snapshots, corrections, forgetting, concurrent edits, slow extraction, and retry recovery. Integration tests use the existing isolated test database and bucket.
 
