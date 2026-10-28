@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConversationList } from "@/features/chat/components/conversation-list";
 import { EntrepreneurProfilePanel } from "@/features/entrepreneur/components/profile-panel";
-import { getEntrepreneurProfile } from "@/features/entrepreneur/api";
+import { DemoSessionProvider, useDemoSession } from "./demo-session";
 import { getWork, workKey } from "./api";
 import { useWorkCopy } from "./copy";
 
@@ -67,10 +67,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     "/learning",
     "/my-business",
   ].some((path) => pathname === path || pathname.startsWith(path + "/"));
-  return active ? <WorkspaceShell>{children}</WorkspaceShell> : children;
+  return active ? (
+    <DemoSessionProvider>
+      <WorkspaceShell>{children}</WorkspaceShell>
+    </DemoSessionProvider>
+  ) : (
+    children
+  );
 }
 
 function WorkspaceShell({ children }: { children: ReactNode }) {
+  const demo = useDemoSession();
   const { t } = useWorkCopy();
   const router = useRouter();
   const pathname = usePathname();
@@ -79,10 +86,6 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
   const [expanded, setExpanded] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const profile = useQuery({
-    queryKey: ["entrepreneur-profile"],
-    queryFn: getEntrepreneurProfile,
-  });
   const work = useQuery({
     queryKey: [...workKey, "notifications"],
     queryFn: () => getWork(),
@@ -181,7 +184,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">
-            {profile.data?.business_name || t.business}
+            {demo.profile.name}
           </span>
           <span className="block text-xs text-muted-foreground">
             {t.profile}

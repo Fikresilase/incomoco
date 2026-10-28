@@ -144,3 +144,12 @@ test("sample visuals derive their totals consistently without writing real recor
   );
   assert.ok(activity["2026-10-28"] > 0);
 });
+
+test("switching demo profiles changes sample money and customer data", () => {
+  assert.notDeepEqual(
+    sampleTransactions("2026-10", "aster"),
+    sampleTransactions("2026-10", "hana"),
+  );
+  assert.equal(sampleCustomers("2026-10", "2026-10-28", "hana").length, 18);
+  assert.equal(sampleCustomers("2026-10", "2026-10-28", "aster").length, 28);
+});

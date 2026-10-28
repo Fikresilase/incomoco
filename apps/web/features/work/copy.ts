@@ -1,5 +1,6 @@
 import { useLocaleSwitch } from "@/lib/i18n/provider";
 const en = {
+  demoProfile: "Demo profile",
   sampleLesson: "Build stronger business habits",
   moneyOverview: "Money overview",
   recordedMoney: "Recorded income and expenses",
@@ -121,6 +122,7 @@ const en = {
 type Copy = typeof en;
 const am: Copy = {
   ...en,
+  demoProfile: "የማሳያ መገለጫ",
   moneyOverview: "የገንዘብ አጠቃላይ እይታ",
   taskProgress: "የሥራ እድገት",
   newCustomers: "በዚህ ወር የተጨመሩ",

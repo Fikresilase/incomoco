@@ -1,88 +1,70 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  getEntrepreneurProfile,
-  updateEntrepreneurProfile,
-  type BusinessStage,
-} from "../api";
+import { apiFetch } from "@/lib/api";
+import { useDemoSession } from "@/features/work/demo-session";
 import { useWorkCopy } from "@/features/work/copy";
-import { MemoryPanel } from "@/features/work/memory-panel";
 
 export function EntrepreneurProfilePanel() {
   const { t } = useWorkCopy();
+  const demo = useDemoSession();
   const client = useQueryClient();
-  const profile = useQuery({
-    queryKey: ["entrepreneur-profile"],
-    queryFn: getEntrepreneurProfile,
+  const memory = useQuery({
+    queryKey: ["memory"],
+    queryFn: () =>
+      apiFetch<{ enabled: boolean; revision: number }>("/me/memory"),
   });
-  const mutation = useMutation({
-    mutationFn: updateEntrepreneurProfile,
-    onSuccess: (data) => {
-      client.setQueryData(["entrepreneur-profile"], data);
-      void client.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success(t.saved);
+  const update = useMutation({
+    mutationFn: (enabled: boolean) =>
+      apiFetch<{ enabled: boolean; revision: number }>("/me/memory", {
+        method: "PATCH",
+        body: { revision: memory.data?.revision, enabled },
+      }),
+    onSuccess: (data) => client.setQueryData(["memory"], data),
+    onError: (error: Error) => {
+      toast.error(error.message);
+      void memory.refetch();
     },
-    onError: (e: Error) => toast.error(e.message),
   });
-  if (profile.isPending) return <p aria-busy="true">{t.loading}</p>;
-  if (profile.isError)
-    return <Button onClick={() => void profile.refetch()}>{t.retry}</Button>;
-  function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    mutation.mutate({
-      business_name: String(form.get("name")).trim() || null,
-      business_type: String(form.get("type")).trim() || null,
-      business_description: String(form.get("description")).trim() || null,
-      business_stage: (String(form.get("stage")) ||
-        null) as BusinessStage | null,
-    });
-  }
   return (
-    <div className="space-y-6">
-      <form onSubmit={save} key={profile.data.updated_at} className="space-y-3">
-        {[
-          ["name", t.businessName, profile.data.business_name, 200],
-          ["type", t.businessType, profile.data.business_type, 120],
-          [
-            "description",
-            t.businessDescription,
-            profile.data.business_description,
-            2000,
-          ],
-        ].map(([name, label, value, max]) => (
-          <label key={String(name)} className="block text-xs font-medium">
-            {label}
-            <Input
-              name={String(name)}
-              defaultValue={String(value ?? "")}
-              maxLength={Number(max)}
-              className="mt-1"
-            />
-          </label>
-        ))}
-        <label className="block text-xs font-medium">
-          {t.stage}
-          <select
-            name="stage"
-            defaultValue={profile.data.business_stage ?? ""}
-            className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm"
-          >
-            <option value="">—</option>
-            {["idea", "startup", "operating", "growing"].map((stage) => (
-              <option key={stage}>{stage}</option>
-            ))}
-          </select>
-        </label>
-        <Button size="sm" disabled={mutation.isPending}>
-          {t.save}
-        </Button>
-      </form>
-      <MemoryPanel />
+    <div className="space-y-5 py-2">
+      <label className="block text-xs font-medium">
+        {t.demoProfile}
+        <select
+          aria-label={t.demoProfile}
+          className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+          value={demo.selected}
+          disabled={demo.switching}
+          onChange={(event) => demo.select(event.target.value)}
+        >
+          {demo.profiles.map((profile) => (
+            <option key={profile.key} value={profile.key}>
+              {profile.name} · {profile.business_name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center justify-between gap-4 text-sm">
+        <span>{t.enableMemory}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label={t.enableMemory}
+          checked={memory.data?.enabled ?? false}
+          disabled={memory.isPending || memory.isError || update.isPending}
+          onChange={(event) => update.mutate(event.target.checked)}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden
+          className="relative h-6 w-11 shrink-0 rounded-full bg-slate-200 transition-colors after:absolute after:left-1 after:top-1 after:size-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-brand-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:opacity-50"
+        />
+      </label>
+      {memory.isError && (
+        <p role="alert" className="text-xs text-destructive">
+          {t.error}
+        </p>
+      )}
     </div>
   );
 }

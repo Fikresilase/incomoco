@@ -584,3 +584,14 @@ class MemoryJob(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     available_at: Mapped[datetime] = _ts()
     created_at: Mapped[datetime] = _ts()
+
+
+class DemoLessonProgress(Base):
+    __tablename__ = "demo_lesson_progress"
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"), primary_key=True)
+    persona: Mapped[str] = mapped_column(String(64), primary_key=True)
+    lesson_version: Mapped[str] = mapped_column(String(40), primary_key=True)
+    position: Mapped[float] = mapped_column(Float, default=0)
+    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = _ts()

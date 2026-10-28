@@ -38,7 +38,9 @@ import {
   sampleTransactions,
   sampleActivity,
   sampleCustomers,
+  sampleProfileProgress,
 } from "./insights";
+import { useDemoSession } from "./demo-session";
 import { useWorkCopy } from "./copy";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -582,6 +584,7 @@ function RecordEditor({
 }
 
 export function WorkDashboard() {
+  const demo = useDemoSession();
   const { t, locale } = useWorkCopy();
   const [hour, setHour] = useState<number | null>(null);
   useEffect(() => {
@@ -594,7 +597,7 @@ export function WorkDashboard() {
     };
   }, []);
   const [month, setMonth] = useState("");
-  const [sample, setSample] = useState(false);
+  const [sample, setSample] = useState(true);
   const [selectedCurrency, setSelectedCurrency] = useState("");
   const [editor, setEditor] = useState<Editor | null>(null);
   const save = useSave();
@@ -621,7 +624,7 @@ export function WorkDashboard() {
   const d = dashboard.data;
   const entries =
     sample && data
-      ? sampleTransactions(data.month)
+      ? sampleTransactions(data.month, demo.selected)
       : (data?.transactions ?? []);
   const currencies = [
     ...new Set(entries.map((entry) => entry.currency)),
@@ -639,19 +642,13 @@ export function WorkDashboard() {
   const entryCount = entries.filter(
     (entry) => entry.currency === currency,
   ).length;
+  const sampleProgress = sampleProfileProgress(demo.selected);
   const counts = sample
-    ? {
-        assigned: 2,
-        inProgress: 4,
-        completed: 8,
-        needsHelp: 0,
-        total: 14,
-        percent: 57,
-      }
+    ? sampleProgress.counts
     : taskSummary(data?.todos ?? [], assignedActions.data ?? []);
   const customerStats = customerSummary(
     sample && data
-      ? sampleCustomers(data.month, data.today)
+      ? sampleCustomers(data.month, data.today, demo.selected)
       : (data?.customers ?? []),
     data?.month ?? "2000-01",
     data?.today ?? "2000-01-01",
@@ -660,7 +657,7 @@ export function WorkDashboard() {
     d?.completed_lessons.map((lesson) => lesson.id) ?? [],
   );
   const completedLessons = sample
-    ? 6
+    ? sampleProgress.lessons
     : (lessons.data ?? []).filter((lesson) => completedIds.has(lesson.id))
         .length;
   const totalLessons = sample ? 10 : (lessons.data?.length ?? 0);
@@ -678,7 +675,7 @@ export function WorkDashboard() {
     <main className="mx-auto max-w-[1440px] space-y-4 px-3 py-2 pb-6 sm:px-5">
       <h1 className="sr-only">{t.business}</h1>
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <p className="text-base font-semibold tracking-tight">
+        <p className="text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
           {hour === null
             ? t.hello
             : hour < 12
@@ -686,9 +683,9 @@ export function WorkDashboard() {
               : hour < 18
                 ? t.afternoon
                 : t.evening}
-          {d?.profile_name?.trim()
-            ? `, ${d.profile_name.trim().split(/\s+/)[0]}`
-            : ""}
+          <span className="ml-2 text-[1.15em] font-bold text-brand-accent">
+            {demo.profile.name.split(/\s+/)[0]}
+          </span>
         </p>
         {sample && (
           <span

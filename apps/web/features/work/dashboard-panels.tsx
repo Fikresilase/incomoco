@@ -49,41 +49,11 @@ function Preview({ show }: { show: boolean }) {
   ) : null;
 }
 
-function Sparkline({ values, color }: { values: number[]; color: string }) {
-  if (!values.length || !values.some((value) => value !== 0)) return null;
-  const min = Math.min(0, ...values),
-    max = Math.max(1, ...values);
-  const path = values
-    .map(
-      (value, i) =>
-        `${i ? "L" : "M"}${(i / Math.max(1, values.length - 1)) * 88},${28 - ((value - min) / (max - min)) * 24}`,
-    )
-    .join(" ");
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 88 32"
-      className="h-8 w-22 shrink-0"
-      fill="none"
-    >
-      <path d={`${path} L88,32 L0,32 Z`} fill={color} opacity="0.09" />
-      <path
-        d={path}
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function MetricCard({
   label,
   value,
   caption,
   kind,
-  points = [],
   sample = false,
 }: {
   label: string;
@@ -147,12 +117,7 @@ export function MetricCard({
             </p>
           )}
         </div>
-        <Sparkline
-          values={points}
-          color={
-            primary ? "#ffffff" : kind === "expense" ? "#f15a3b" : "#0b2a5b"
-          }
-        />
+
       </div>
     </Panel>
   );

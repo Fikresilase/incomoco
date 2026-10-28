@@ -24,6 +24,19 @@ DEMO_COOKIE = "inkomoko_demo_key"
 async def _profile(request: Request, demo_key: str | None, db: AsyncSession):
     return await DashboardService().profile_for_request(db, session_id_from(request), demo_key)
 
+@router.get("/demo/profiles")
+async def demo_profiles(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    profiles = (await db.scalars(select(EntrepreneurProfile).where(EntrepreneurProfile.is_demo.is_(True), EntrepreneurProfile.demo_key.is_not(None)).order_by(EntrepreneurProfile.demo_key))).all()
+    if not profiles:
+        raise HTTPException(404, "Demo profiles are not available")
+    keys = {profile.demo_key for profile in profiles}
+    selected = request.cookies.get(DEMO_COOKIE)
+    if selected not in keys:
+        selected = "aster" if "aster" in keys else profiles[0].demo_key
+        response.set_cookie(DEMO_COOKIE, selected, max_age=86400, httponly=True, samesite="lax")
+    return {"selected": selected, "profiles": [{"key": profile.demo_key, "name": profile.demo_key.replace("_", " ").title(), "business_name": profile.business_name} for profile in profiles]}
+
+
 @router.post("/demo/login", response_model=DashboardOut)
 async def demo_login(body: DemoPersonaIn, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
     profile = await _profile(request, body.persona, db)

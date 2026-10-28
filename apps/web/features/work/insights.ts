@@ -97,14 +97,27 @@ export function customerSummary(
   };
 }
 
-export function sampleTransactions(month: string): Transaction[] {
+export function sampleTransactions(
+  month: string,
+  persona = "aster",
+): Transaction[] {
+  const factor =
+    (
+      {
+        aster: 1,
+        hana: 0.8,
+        mohammed: 1.4,
+        bekele: 1.15,
+        mulu: 0.65,
+      } as Record<string, number>
+    )[persona] ?? 1;
   return Array.from({ length: 24 }, (_, index) => {
     const day = index + 1;
     return [
       {
         id: `sample-income-${day}`,
         kind: "income" as const,
-        amount: String(420 + ((day * 173) % 1100)),
+        amount: String(Math.round((420 + ((day * 173) % 1100)) * factor)),
         currency: "ETB",
         description: "Sample sale",
         occurred_on: `${month}-${String(day).padStart(2, "0")}`,
@@ -112,7 +125,7 @@ export function sampleTransactions(month: string): Transaction[] {
       {
         id: `sample-expense-${day}`,
         kind: "expense" as const,
-        amount: String(150 + ((day * 97) % 520)),
+        amount: String(Math.round((150 + ((day * 97) % 520)) * factor)),
         currency: "ETB",
         description: "Sample expense",
         occurred_on: `${month}-${String(day).padStart(2, "0")}`,
@@ -133,11 +146,22 @@ export function sampleActivity(today: string) {
   return result;
 }
 
-export function sampleCustomers(month: string, today: string): Customer[] {
+export function sampleCustomers(
+  month: string,
+  today: string,
+  persona = "aster",
+): Customer[] {
   const [year, number] = month.split("-").map(Number);
   const previous = new Date(Date.UTC(year, number - 2, 1, 12)).toISOString();
   const names = ["Aster", "Hana", "Mulu", "Sara", "Meron", "Dawit"];
-  return Array.from({ length: 28 }, (_, index) => {
+  const count =
+    (
+      { aster: 28, hana: 18, mohammed: 34, bekele: 22, mulu: 16 } as Record<
+        string,
+        number
+      >
+    )[persona] ?? 28;
+  return Array.from({ length: count }, (_, index) => {
     const followUp = new Date(`${today}T12:00:00Z`);
     followUp.setUTCDate(followUp.getUTCDate() + index + 1);
     return {
@@ -152,4 +176,34 @@ export function sampleCustomers(month: string, today: string): Customer[] {
       follow_up_on: index < 3 ? followUp.toISOString().slice(0, 10) : null,
     };
   });
+}
+
+export function sampleProfileProgress(persona: string) {
+  const completed =
+    (
+      { aster: 8, hana: 5, mohammed: 9, bekele: 6, mulu: 3 } as Record<
+        string,
+        number
+      >
+    )[persona] ?? 8;
+  const assigned = persona === "mulu" ? 4 : 2;
+  const inProgress = persona === "hana" ? 3 : 4;
+  const total = completed + assigned + inProgress;
+  return {
+    counts: {
+      assigned,
+      inProgress,
+      completed,
+      needsHelp: 0,
+      total,
+      percent: Math.round((100 * completed) / total),
+    },
+    lessons:
+      (
+        { aster: 6, hana: 4, mohammed: 5, bekele: 7, mulu: 2 } as Record<
+          string,
+          number
+        >
+      )[persona] ?? 6,
+  };
 }
