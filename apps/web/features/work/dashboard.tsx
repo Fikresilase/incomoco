@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  BookOpen,
+  FlaskConical,
   Check,
   ChevronRight,
   Pencil,
@@ -25,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { WorkTabs } from "./app-shell";
 import {
   getWork,
   workKey,
@@ -484,44 +483,27 @@ export function WorkDashboard() {
       save.mutate({ path: `/me/work/${collection}/${id}`, method: "DELETE" });
   }
   return (
-    <main className="mx-auto max-w-[1280px] space-y-5 px-4 py-4 sm:px-6">
-      <WorkTabs active="business" />
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            {data?.today
-              ? new Intl.DateTimeFormat(locale, {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  timeZone: "UTC",
-                }).format(new Date(data.today + "T12:00:00Z"))
-              : t.today}
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {t.business}
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            {t.month}
-            <Input
-              type="month"
-              aria-label={t.month}
-              value={month || data?.month || ""}
-              onChange={(e) => setMonth(e.target.value)}
-              className="w-40"
-            />
-          </label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSample(!sample)}
-            aria-pressed={sample}
-          >
-            {sample ? t.live : t.sample}
-          </Button>
-        </div>
+    <main className="mx-auto max-w-[1280px] space-y-3 px-3 py-1 sm:px-4">
+      <h1 className="sr-only">{t.business}</h1>
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-1">
+        <Input
+          type="month"
+          aria-label={t.month}
+          value={month || data?.month || ""}
+          onChange={(e) => setMonth(e.target.value)}
+          className="h-8 w-36 border-0 bg-transparent px-1 text-xs shadow-none"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label={sample ? t.live : t.sample}
+          title={sample ? t.live : t.sample}
+          onClick={() => setSample(!sample)}
+          aria-pressed={sample}
+        >
+          <FlaskConical className="size-4" />
+        </Button>
       </div>
       {d?.demo_account && (
         <p className="rounded-lg bg-surface-navy px-3 py-2 text-xs text-muted-foreground">
@@ -545,7 +527,7 @@ export function WorkDashboard() {
       ) : (
         data && (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 [t.income, "income", ArrowDownLeft],
                 [t.expense, "expense", ArrowUpRight],
@@ -600,14 +582,11 @@ export function WorkDashboard() {
               </Card>
             </div>
             <>
-              <div className="grid items-start gap-4 xl:grid-cols-[1.3fr_1fr]">
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1.3fr_1fr]">
                 <Todos data={data} />
                 <div className="space-y-4">
                   <Card className="bg-surface-navy">
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-semibold">{t.learning}</h2>
-                      <BookOpen className="size-4" />
-                    </div>
+                    <h2 className="sr-only">{t.learning}</h2>
                     {dashboard.isError || lessons.isError ? (
                       <Button
                         variant="ghost"
@@ -699,9 +678,9 @@ export function WorkDashboard() {
               <ActivityGrid data={data.activity} today={data.today} />
             </>
             <BusinessOverview />
-            <div className="grid items-start gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
               <Card>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-semibold">{t.transactions}</h2>
                   <Button
                     size="sm"
@@ -775,7 +754,7 @@ export function WorkDashboard() {
                 </div>
               </Card>
               <Card>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-semibold">{t.customers}</h2>
                   <Button
                     size="sm"

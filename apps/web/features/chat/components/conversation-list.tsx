@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import { MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,7 +35,11 @@ export interface ConversationListProps {
 }
 
 /** Sidebar list from `GET /conversations` with delete. */
-export function ConversationList({ activeId, onSelect, onDeleted }: ConversationListProps) {
+export function ConversationList({
+  activeId,
+  onSelect,
+  onDeleted,
+}: ConversationListProps) {
   const t = useTranslations();
   const queryClient = useQueryClient();
   const [toDelete, setToDelete] = useState<ConversationSummary | null>(null);
@@ -48,8 +52,9 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
   const remove = useMutation({
     mutationFn: (id: string) => deleteConversation(id),
     onSuccess: (_data, id) => {
-      queryClient.setQueryData<ConversationSummary[]>(chatKeys.conversations, (prev) =>
-        prev?.filter((c) => c.id !== id)
+      queryClient.setQueryData<ConversationSummary[]>(
+        chatKeys.conversations,
+        (prev) => prev?.filter((c) => c.id !== id),
       );
       queryClient.removeQueries({ queryKey: chatKeys.conversation(id) });
       toast.success(t("chat.conversationDeleted"));
@@ -60,9 +65,17 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
 
   if (query.isPending) {
     return (
-      <div className="space-y-2 px-3 py-2" aria-busy="true" aria-label={t("common.loading")}>
+      <div
+        className="space-y-2 px-3 py-2"
+        aria-busy="true"
+        aria-label={t("common.loading")}
+      >
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-full rounded-lg" style={{ opacity: 1 - i * 0.12 }} />
+          <Skeleton
+            key={i}
+            className="h-8 w-full rounded-lg"
+            style={{ opacity: 1 - i * 0.12 }}
+          />
         ))}
       </div>
     );
@@ -72,7 +85,12 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
     return (
       <div className="px-4 py-3 text-sm text-muted-foreground" role="alert">
         <p>{t("chat.loadConversationsError")}</p>
-        <Button variant="outline" size="xs" className="mt-2" onClick={() => query.refetch()}>
+        <Button
+          variant="outline"
+          size="xs"
+          className="mt-2"
+          onClick={() => query.refetch()}
+        >
           <RotateCcw />
           {t("common.retry")}
         </Button>
@@ -81,7 +99,11 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
   }
 
   if (query.data.length === 0) {
-    return <p className="px-4 py-3 text-sm text-muted-foreground">{t("chat.noConversations")}</p>;
+    return (
+      <p className="px-4 py-3 text-sm text-muted-foreground">
+        {t("chat.noConversations")}
+      </p>
+    );
   }
 
   return (
@@ -99,13 +121,9 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
                   "flex w-full items-center gap-2 rounded-lg py-2 pr-9 pl-3 text-left text-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none",
                   active
                     ? "bg-secondary/[0.07] font-semibold text-secondary"
-                    : "text-secondary hover:bg-muted"
+                    : "text-secondary hover:bg-muted",
                 )}
               >
-                <MessageSquare
-                  className={cn("size-4 shrink-0", active ? "text-primary" : "text-muted-foreground")}
-                  aria-hidden
-                />
                 <span className="truncate">{conversation.title || "…"}</span>
               </button>
               <DropdownMenu>
@@ -134,12 +152,19 @@ export function ConversationList({ activeId, onSelect, onDeleted }: Conversation
         })}
       </ul>
 
-      <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
+      <AlertDialog
+        open={toDelete !== null}
+        onOpenChange={(open) => !open && setToDelete(null)}
+      >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("chat.deleteConversationTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("chat.deleteConversationTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("chat.deleteConversationBody", { title: toDelete?.title ?? "" })}
+              {t("chat.deleteConversationBody", {
+                title: toDelete?.title ?? "",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

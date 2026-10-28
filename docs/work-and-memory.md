@@ -1,6 +1,6 @@
 # Work dashboard and customer memory
 
-The shared entrepreneur shell provides a borderless header, globe language menu, notifications for due to-dos/customer follow-ups, collapsible sidebar, chat history, and bottom profile control. `/work` and `/work/learn` contain My Business and Learn. My Business combines the main dashboard, business goals/skills, and manual records. Existing `/home`, `/my-business`, and `/work/business` links redirect to `/work`; existing lesson URLs remain valid.
+The shared entrepreneur shell provides a borderless header with My Business/Learn segmented navigation in Work, a globe language menu, and notifications for due to-dos/customer follow-ups. The collapsible sidebar aligns the hamburger, New chat, and Work icons, lists conversation titles without message icons, and anchors the profile control at the bottom. A compact month picker sits at the far left beneath the Work header; duplicate page titles, weekday text, and learning introductions are omitted. On narrow screens, the segmented navigation uses a compact second header row and the sidebar remains accessible from an icon rail. `/work` and `/work/learn` contain My Business and Learn. My Business combines the main dashboard, business goals/skills, and manual records. Existing `/home`, `/my-business`, and `/work/business` links redirect to `/work`; existing lesson URLs remain valid.
 
 ## Work records
 

@@ -12,9 +12,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
-  BookOpen,
   BriefcaseBusiness,
-  ChevronLeft,
   Menu,
   SquarePen,
   UserRound,
@@ -91,6 +89,10 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
     refetchInterval: 60000,
   });
   const isChat = pathname === "/chat";
+  const isLearn =
+    pathname === "/learn" ||
+    pathname.startsWith("/work/learn") ||
+    pathname.startsWith("/learning/");
   const notifications = [
     ...(work.data?.todos
       .filter(
@@ -126,26 +128,23 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
   }
   const sidebar = (
     <>
-      <div className="flex h-12 items-center justify-between px-3">
-        <span className="text-xs font-semibold text-muted-foreground">
-          {t.chat} / {t.work}
-        </span>
+      <div className="flex h-12 items-center px-2">
         <Button
           variant="ghost"
-          size="icon"
+          className="h-10 w-full justify-start rounded-lg px-3"
           aria-label="Close sidebar"
           onClick={() => {
             setExpanded(false);
             setMobileOpen(false);
           }}
         >
-          <ChevronLeft className="size-4" />
+          <Menu className="size-4 shrink-0" />
         </Button>
       </div>
       <nav className="space-y-1 px-2">
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="h-10 w-full justify-start gap-2 rounded-lg px-3"
           onClick={() => navigateConversation()}
         >
           <SquarePen className="size-4" />
@@ -155,7 +154,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
           href="/work"
           onClick={() => setMobileOpen(false)}
           aria-current={!isChat ? "page" : undefined}
-          className={`flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium ${!isChat ? "bg-surface-navy text-brand-primary" : "hover:bg-muted"}`}
+          className={`flex h-10 items-center gap-2 rounded-lg border border-transparent px-3 text-sm font-medium ${!isChat ? "bg-surface-navy text-brand-primary" : "hover:bg-muted"}`}
         >
           <BriefcaseBusiness className="size-4" />
           {t.work}
@@ -191,40 +190,80 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
       </button>
     </>
   );
+  const rail = (
+    <>
+      <div className="flex h-12 items-center justify-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden md:inline-flex"
+          aria-label="Expand sidebar"
+          aria-expanded={false}
+          onClick={() => setExpanded(true)}
+        >
+          <Menu className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label="Open sidebar"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="size-4" />
+        </Button>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-10 w-10"
+        aria-label={t.newChat}
+        onClick={() => navigateConversation()}
+      >
+        <SquarePen className="size-4" />
+      </Button>
+      <Button asChild variant="ghost" size="icon" className="h-10 w-10">
+        <Link href="/work" aria-label={t.work}>
+          <BriefcaseBusiness className="size-4" />
+        </Link>
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="mb-2 mt-auto"
+        aria-label={t.profile}
+        onClick={() => {
+          setMobileOpen(false);
+          setProfileOpen(true);
+        }}
+      >
+        <UserRound className="size-4" />
+      </Button>
+    </>
+  );
   return (
     <ChatNavigation.Provider value={chat}>
       <div className="flex h-dvh overflow-hidden bg-background text-secondary">
+        <aside
+          aria-label="Sidebar"
+          className="flex w-14 shrink-0 flex-col items-center gap-1 bg-surface-soft md:hidden"
+        >
+          {rail}
+        </aside>
         {expanded ? (
-          <aside className="hidden w-60 shrink-0 flex-col bg-surface-soft md:flex">
+          <aside
+            aria-label="Sidebar"
+            className="hidden w-60 shrink-0 flex-col bg-surface-soft md:flex"
+          >
             {sidebar}
           </aside>
         ) : (
-          <aside className="hidden w-14 shrink-0 flex-col items-center gap-2 bg-surface-soft py-3 md:flex">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t.newChat}
-              onClick={() => navigateConversation()}
-            >
-              <SquarePen className="size-4" />
-            </Button>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="/work" aria-label={t.work}>
-                <BriefcaseBusiness className="size-4" />
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mt-auto"
-              aria-label={t.profile}
-              onClick={() => {
-                setMobileOpen(false);
-                setProfileOpen(true);
-              }}
-            >
-              <UserRound className="size-4" />
-            </Button>
+          <aside
+            aria-label="Sidebar"
+            className="hidden w-14 shrink-0 flex-col items-center gap-1 bg-surface-soft md:flex"
+          >
+            {rail}
           </aside>
         )}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -240,30 +279,15 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-12 shrink-0 items-center gap-1 px-2 sm:px-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden md:inline-flex"
-              aria-label="Toggle sidebar"
-              aria-expanded={expanded}
-              onClick={() => setExpanded(!expanded)}
-            >
-              <Menu className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              aria-label="Open sidebar"
-              aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu className="size-4" />
-            </Button>
-            <Link href="/chat">
+          <header className="relative flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 px-3">
+            <Link href="/chat" className="flex h-12 shrink-0 items-center">
               <Wordmark showProduct={false} className="text-base" />
             </Link>
+            {!isChat && (
+              <div className="order-3 flex w-full justify-center pb-1 sm:absolute sm:left-1/2 sm:top-2 sm:order-none sm:w-auto sm:-translate-x-1/2 sm:pb-0">
+                <WorkTabs active={isLearn ? "learn" : "business"} />
+              </div>
+            )}
             <div className="ml-auto flex items-center gap-0.5">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -331,27 +355,26 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function WorkTabs({ active }: { active: "business" | "learn" }) {
+function WorkTabs({ active }: { active: "business" | "learn" }) {
   const { t } = useWorkCopy();
   return (
-    <nav aria-label={t.work} className="mb-5 flex gap-1">
+    <nav
+      aria-label={t.work}
+      className="inline-flex items-center gap-0.5 rounded-full bg-muted p-0.5"
+    >
       {[
-        ["business", "/work", t.business, BriefcaseBusiness],
-        ["learn", "/work/learn", t.learn, BookOpen],
-      ].map(([key, href, label, Icon]) => {
-        const ItemIcon = Icon as typeof BriefcaseBusiness;
-        return (
-          <Link
-            key={String(key)}
-            href={String(href)}
-            aria-current={active === key ? "page" : undefined}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium ${active === key ? "bg-brand-primary text-white" : "text-muted-foreground hover:bg-muted"}`}
-          >
-            <ItemIcon className="size-4" />
-            {String(label)}
-          </Link>
-        );
-      })}
+        ["business", "/work", t.business],
+        ["learn", "/work/learn", t.learn],
+      ].map(([key, href, label]) => (
+        <Link
+          key={key}
+          href={href}
+          aria-current={active === key ? "page" : undefined}
+          className={`inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-3 text-xs font-medium transition-colors ${active === key ? "bg-surface text-brand-primary shadow-sm" : "text-muted-foreground hover:text-brand-primary"}`}
+        >
+          {label}
+        </Link>
+      ))}
     </nav>
   );
 }

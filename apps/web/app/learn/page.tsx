@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight, Check, Play } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { WorkTabs } from "@/features/work/app-shell";
 import { useLocaleSwitch } from "@/lib/i18n/provider";
 import { ContentLanguageNotice } from "@/features/entrepreneur/components/content-language-notice";
 type Lesson = {
@@ -92,7 +91,6 @@ export default function LearnPage() {
         : locale === "so"
           ? { title: "Jidadka waxbarashada", completed: "la dhammeeyay" }
           : { title: "Your learning paths", completed: "completed" };
-  void pathLabels;
   const q = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => apiFetch<Dashboard>("/me/dashboard"),
@@ -124,12 +122,8 @@ export default function LearnPage() {
 
   return (
     <div className="min-h-full bg-background text-secondary">
-      <main className="mx-auto max-w-[1280px] px-5 py-4 pb-8 sm:px-8">
-        <WorkTabs active="learn" />
-        <header className="mb-5">
-          <p className="text-sm font-medium text-text-secondary">{t.sub}</p>
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{t.title}</h1>
-        </header>
+      <main className="mx-auto max-w-[1280px] px-3 py-2 pb-4 sm:px-4">
+        <h1 className="sr-only">{t.title}</h1>
         {q.isPending || resources.isPending ? (
           <p
             className="max-w-3xl border-l-2 border-border-soft py-2 pl-5 text-text-secondary"
@@ -155,23 +149,10 @@ export default function LearnPage() {
           <>
             {Object.keys(grouped).length > 0 && (
               <section className="mb-5" aria-labelledby="learning-paths-title">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-brand-primary">
-                      {t.next}
-                    </p>
-                    <h2
-                      id="learning-paths-title"
-                      className="mt-1 text-2xl font-bold"
-                    >
-                      Your learning paths
-                    </h2>
-                  </div>
-                  <span className="text-sm text-text-secondary">
-                    {completed.size} completed
-                  </span>
-                </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <h2 id="learning-paths-title" className="sr-only">
+                  {pathLabels.title}
+                </h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {Object.entries(grouped).map(([key, lessons]) => {
                     const done = lessons.filter((lesson) =>
                       completed.has(lesson.id),
@@ -179,7 +160,7 @@ export default function LearnPage() {
                     return (
                       <article
                         key={key}
-                        className="rounded-2xl border border-border-soft bg-surface p-5 shadow-[0_3px_18px_rgba(11,42,91,0.04)]"
+                        className="min-w-0 rounded-2xl border border-border-soft bg-surface p-4 shadow-[0_3px_18px_rgba(11,42,91,0.04)]"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
@@ -291,9 +272,7 @@ export default function LearnPage() {
                                 : "rounded-xl border border-border-soft bg-background p-5 sm:p-6"
                             }
                           >
-                            <p className="text-xs font-bold uppercase tracking-wide text-brand-primary">
-                              {active ? t.now : t.next}
-                            </p>
+                            <p className="sr-only">{active ? t.now : t.next}</p>
                             <h2
                               lang={lesson.language}
                               className="mt-2 text-xl font-bold sm:text-2xl"
