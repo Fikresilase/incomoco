@@ -29,6 +29,7 @@ class LearningResourceOut(BaseModel):
     storage_reference: str | None
     duration_seconds: int | None
     course_key: str | None
+    course_title: str | None = None
     chapter_number: int | None
     lesson_content: dict | None
     source_reference: str | None

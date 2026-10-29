@@ -83,4 +83,6 @@ cd apps/api && DATABASE_URL=postgresql+asyncpg://inkomoko:inkomoko@localhost:543
 ```
 
 ---
+The bundled Amharic interactive lesson is available at `/learning/demo` and from My Learning. Its narration and animation files ship with the code; playing it requires no AI credentials or demo database seed. See [interactive learning notes](docs/animated-learning.md).
+
 *AI-assisted draft. Review before sharing externally.*

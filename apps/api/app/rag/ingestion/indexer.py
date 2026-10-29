@@ -38,6 +38,9 @@ class DocumentIndexer:
         self._embedder = embedder
         self._vector_store = vector_store
 
+    async def convert(self, data: bytes, filename: str):
+        return await self._converters.convert(data, filename)
+
     async def index(self, *, document_id: str, title: str, filename: str, data: bytes) -> IndexResult:
         converted = await self._converters.convert(data, filename)
         markdown = converted.markdown.strip()

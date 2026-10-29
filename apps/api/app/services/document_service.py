@@ -36,7 +36,7 @@ class DocumentService:
     def __init__(self, container: Container):
         self.c = container
 
-    async def upload(self, db: AsyncSession, filename: str, data: bytes) -> Document:
+    async def upload(self, db: AsyncSession, filename: str, data: bytes, *, commit: bool = True) -> Document:
         extension = extension_of(filename)
         if extension not in SUPPORTED_EXTENSIONS:
             raise UploadError("Unsupported file type. Upload PDF, DOCX, TXT, or MD.", 415)
@@ -69,7 +69,8 @@ class DocumentService:
         await record_audit(
             db, "document.upload", entity_type="document", entity_id=document.id, filename=filename
         )
-        await db.commit()
+        if commit:
+            await db.commit()
         return document
 
     async def get(self, db: AsyncSession, document_id: uuid.UUID) -> Document:

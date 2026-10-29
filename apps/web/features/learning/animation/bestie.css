@@ -1,0 +1,182 @@
+/* Adapted from Bestie ab2d0996. */
+.bestie-universal-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.bestie-universal-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+}
+
+.bestie-universal-scene::before,
+.bestie-universal-scene::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.bestie-universal-scene::before {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 34%, rgba(2, 4, 13, 0.18) 62%, rgba(0, 0, 0, 0.72) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 24%, transparent 76%, rgba(0, 0, 0, 0.22));
+}
+
+.bestie-universal-scene::after {
+  inset: auto 0 0;
+  height: 26%;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.34));
+}
+
+.bestie-universal-svg {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.bestie-universal-label-camera {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  transform-origin: center;
+}
+
+.bestie-scene-vignette {
+  fill: transparent;
+  stroke: rgba(245, 244, 254, 0.06);
+  stroke-width: 0.08;
+}
+
+.bestie-universal-label {
+  pointer-events: none;
+  position: absolute;
+  max-width: 88%;
+  transform: translate(-50%, -50%);
+  color: #f5f4fe;
+  font-family: var(--font-newsreader), Georgia, 'Times New Roman', Times, serif;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow: hidden;
+  text-align: center;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.72),
+    0 0 14px rgba(245, 244, 254, 0.18),
+    0 0 28px rgba(88, 196, 221, 0.24);
+  white-space: nowrap;
+}
+
+.bestie-universal-text-label {
+  text-wrap: balance;
+}
+
+.bestie-universal-math-label {
+  font-weight: 400;
+}
+
+.bestie-universal-label .katex {
+  color: inherit;
+  font-size: 1.08em;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.7),
+    0 0 12px rgba(245, 244, 254, 0.18),
+    0 0 24px rgba(88, 196, 221, 0.24);
+}
+
+.bestie-universal-html-object,
+.bestie-universal-icon-object {
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  color: #f5f4fe;
+  overflow: hidden;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.bestie-universal-html-object {
+  display: block;
+  container-type: size;
+  isolation: isolate;
+}
+
+.bestie-universal-html-object *,
+.bestie-universal-html-object *::before,
+.bestie-universal-html-object *::after {
+  box-sizing: border-box;
+}
+
+.bestie-universal-html-object svg,
+.bestie-universal-html-object img,
+.bestie-universal-html-object canvas,
+.bestie-universal-html-object video {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.bestie-universal-icon-object {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 12px rgba(88, 196, 221, 0.22));
+}
+
+.bestie-universal-icon-object svg {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.bestie-universal-html-frame {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color-scheme: dark;
+}
+
+.bestie-universal-html-fallback {
+  display: grid;
+  height: 100%;
+  width: 100%;
+  place-items: center;
+  border: 1px solid rgba(245, 244, 254, 0.14);
+  border-radius: 8px;
+  background: rgba(3, 5, 12, 0.72);
+  color: rgba(245, 244, 254, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Word-by-word write-on for the html-scene text fallback. */
+.bestie-fallback-word {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(3px);
+  transform: translateY(0.35em);
+  animation: bestie-fallback-write 0.45s ease-out forwards;
+  white-space: pre-wrap;
+}
+
+@keyframes bestie-fallback-write {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}

@@ -28,14 +28,15 @@ from app.services.learning import LearningRecommendationService, public_resource
 router = APIRouter(prefix="/learning", tags=["learning"])
 
 
-async def _resource_out(db: AsyncSession, resource: LearningResource) -> LearningResourceOut:
+async def _resource_out(db: AsyncSession, resource: LearningResource, *, include_private: bool = False) -> LearningResourceOut:
     skill = await db.get(LearningSkill, resource.skill_id)
     return LearningResourceOut(
         id=resource.id, title=resource.title, description=resource.description, skill_key=skill.key if skill else "",
         resource_type=resource.resource_type, language=resource.language, difficulty_level=resource.difficulty_level,
         media_url=resource.media_url if not resource.storage_reference else None, storage_reference=None, duration_seconds=resource.duration_seconds,
         course_key=resource.course_key, chapter_number=resource.chapter_number,
-        lesson_content=resource.lesson_content,
+        course_title=(resource.lesson_content or {}).get("animated", {}).get("course_title"),
+        lesson_content=resource.lesson_content if include_private else {"animated_available": True} if (resource.lesson_content or {}).get("animated") or (resource.lesson_content or {}).get("preparing_scenes") else resource.lesson_content,
         source_reference=resource.source_reference, version=resource.version, created_at=resource.created_at,
     )
 
@@ -91,6 +92,12 @@ async def complete_resource(resource_id: uuid.UUID, request: Request, db: AsyncS
     resource = await db.scalar(select(LearningResource).join(LearningSkill).where(LearningResource.id == resource_id, LearningResource.approval_status == "approved", LearningResource.is_active.is_(True), LearningSkill.active.is_(True)))
     if not profile or not resource:
         raise HTTPException(404, "Learning resource not found")
+    if (resource.lesson_content or {}).get("animated"):
+        from app.api.v1.animated_learning import learner_id
+        from app.repositories.orm import LessonPlayback
+        saved = await db.get(LessonPlayback, (await learner_id(request, db), resource.id))
+        if not saved or not saved.completed or saved.version != resource.version:
+            raise HTTPException(409, "Watch the lesson and complete its checkpoints first")
     progress = await db.scalar(select(LearningProgress).where(LearningProgress.profile_id == profile.id, LearningProgress.resource_id == resource.id))
     if progress:
         progress.status = "completed"

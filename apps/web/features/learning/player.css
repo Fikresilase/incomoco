@@ -1,0 +1,100 @@
+.learning-dialog {
+  display: flex;
+  width: min(1120px, calc(100vw - 24px));
+  height: min(760px, calc(100dvh - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 20px;
+  background: #0f0c29;
+  color: #f5f4fe;
+  box-shadow: 0 28px 100px rgb(0 0 0 / 45%);
+}
+
+.learning-player { display: flex; flex: 1; min-width: 0; min-height: 0; }
+.learning-frame { position: relative; isolation: isolate; width: 100%; height: 100%; overflow: hidden; container-type: size; background: #0f0c29; }
+.learning-frame:fullscreen { width: 100vw; height: 100dvh; }
+.learning-stage { position: absolute; inset: 0; }
+.learning-close { position: absolute; z-index: 60; top: 12px; right: 12px; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid rgb(255 255 255 / 22%); border-radius: 50%; background: rgb(10 14 30 / 64%); color: white; backdrop-filter: blur(16px); cursor: pointer; }
+.learning-close:hover { background: rgb(255 255 255 / 20%); }
+.learning-title { position: absolute; z-index: 10; inset: 0 0 auto; padding: 18px 64px 32px 22px; background: linear-gradient(rgb(3 5 12 / 85%), transparent); pointer-events: none; }
+.learning-title p { color: #b9c6d9; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; }
+.learning-title h2 { margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(14px, 2cqw, 20px); font-weight: 600; }
+.learning-captions { position: absolute; z-index: 10; bottom: 108px; left: 50%; width: max-content; max-width: 85%; transform: translateX(-50%); border-radius: 10px; padding: 7px 12px; background: rgb(0 0 0 / 70%); color: white; text-align: center; font-size: clamp(11px, 1.7cqw, 15px); line-height: 1.5; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; pointer-events: none; }
+
+.learning-controls { position: absolute; z-index: 30; inset: auto 14px 14px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 17%); border-radius: 16px; background: rgb(16 23 43 / 74%); color: white; backdrop-filter: blur(22px) saturate(140%); box-shadow: 0 8px 30px rgb(0 0 0 / 20%); }
+.learning-controls-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.learning-control { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 36px; height: 36px; border-radius: 9px; background: transparent; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+.learning-control:hover, .learning-control[aria-pressed="true"] { background: rgb(255 255 255 / 13%); }
+.learning-control:disabled { opacity: .35; cursor: default; }
+.learning-control-spacer { flex: 1; }
+.learning-time { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.learning-time span { color: #c4ccdb; }
+.learning-save-status { margin-left: 7px; color: #b9c6d9; font-size: 11px; white-space: nowrap; }
+.learning-volume { display: flex; align-items: center; gap: 8px; }
+.learning-volume input { width: 64px; accent-color: #75dfc5; }
+.learning-speed { height: 32px; width: 58px; border: 1px solid rgb(255 255 255 / 15%); border-radius: 8px; background: rgb(255 255 255 / 7%); color: white; font-size: 12px; }
+.learning-speed option { background: #172039; color: white; }
+.learning-timeline { position: relative; height: 19px; display: flex; align-items: center; }
+.learning-timeline input { position: relative; z-index: 2; width: 100%; height: 16px; cursor: pointer; accent-color: #75dfc5; }
+.learning-checkpoint-markers { position: absolute; inset: 5px 0; pointer-events: none; }
+.learning-checkpoint-markers span { position: absolute; z-index: 3; width: 4px; height: 9px; border-radius: 3px; background: #f4d35e; transform: translateX(-50%); }
+.learning-checkpoint-markers .is-passed { background: #1de8b0; }
+.learning-error { position: absolute; z-index: 40; bottom: 104px; left: 16px; right: 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #fda4af; border-radius: 10px; padding: 8px 12px; background: #451525; color: white; font-size: 12px; }
+.learning-error span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.learning-error button { flex-shrink: 0; text-decoration: underline; cursor: pointer; }
+
+.learning-question-overlay { position: absolute; z-index: 20; inset: 0; display: flex; align-items: center; justify-content: center; padding: 70px 22px 110px; background: rgb(3 7 18 / 48%); backdrop-filter: blur(5px); }
+.learning-question-card { flex: 0 0 auto; width: min(100%, 660px); padding: 24px; border: 1px solid rgb(255 255 255 / 24%); border-radius: 22px; background: linear-gradient(135deg, rgb(31 46 68 / 92%), rgb(11 18 38 / 94%)); color: white; box-shadow: 0 18px 70px rgb(0 0 0 / 32%); transform: scale(var(--checkpoint-scale, 1)); transform-origin: center; }
+.learning-eyebrow { color: #9cebd7; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.learning-question { margin-top: 10px; font-size: clamp(16px, 2.5cqw, 24px); line-height: 1.35; font-weight: 600; overflow-wrap: anywhere; }
+.learning-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.learning-option { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 12px; border: 1px solid rgb(255 255 255 / 20%); border-radius: 12px; background: rgb(255 255 255 / 5%); font-size: 14px; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.learning-option:hover { background: rgb(255 255 255 / 10%); }
+.learning-option.is-selected { border-color: #75dfc5; background: rgb(29 232 176 / 12%); }
+.learning-option input { flex-shrink: 0; accent-color: #75dfc5; }
+.learning-check-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.learning-check-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px; border-radius: 10px; background: #9cebd7; color: #0c2331; font-size: 13px; font-weight: 700; cursor: pointer; }
+.learning-check-button:disabled { opacity: .45; cursor: default; }
+.learning-replay-button { min-height: 36px; padding: 4px; color: #d5deec; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.learning-feedback { margin-top: 12px; color: #cfdaeb; font-size: 12px; line-height: 1.45; }
+.learning-explanation { margin: 12px 0 20px; color: #d5deec; font-size: 15px; line-height: 1.6; }
+.learning-dialog button:focus-visible, .learning-dialog select:focus-visible, .learning-dialog input:focus-visible { outline: 2px solid #9cebd7; outline-offset: 3px; }
+
+@container (max-width: 620px) {
+  .learning-volume, .learning-save-status { display: none; }
+  .learning-controls { inset: auto 8px 8px; padding: 5px 8px; border-radius: 12px; }
+  .learning-controls-row { gap: 3px; }
+  .learning-control { width: 32px; height: 34px; }
+  .learning-time { font-size: 10px; }
+  .learning-speed { width: 48px; font-size: 11px; }
+  .learning-title { padding: 15px 58px 24px 15px; }
+  .learning-captions { bottom: 90px; max-width: 92%; }
+  .learning-question-overlay { padding: 60px 12px 90px; }
+  .learning-question-card { padding: 16px; border-radius: 16px; }
+  .learning-options { gap: 8px; margin-top: 12px; }
+  .learning-option { min-height: 42px; padding: 8px; font-size: 12px; gap: 6px; }
+}
+
+@container (max-height: 450px) {
+  .learning-title { padding-top: 10px; }
+  .learning-title p { display: none; }
+  .learning-question-overlay { padding: 42px 14px 85px; }
+  .learning-question-card { padding: 12px 16px; }
+  .learning-question { margin-top: 5px; font-size: 16px; }
+  .learning-options { margin-top: 8px; gap: 6px; }
+  .learning-option { min-height: 32px; padding: 6px 9px; font-size: 12px; }
+  .learning-check-actions { margin-top: 8px; }
+  .learning-check-button { min-height: 30px; padding: 5px 12px; }
+  .learning-feedback { margin-top: 6px; font-size: 11px; }
+  .learning-explanation { margin: 8px 0 12px; font-size: 13px; }
+  .learning-captions { bottom: 92px; }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .player-chrome { transition: opacity .2s; }
+  .learning-player[data-playing="true"]:not(:hover):not(:focus-within) .player-chrome { opacity: 0; pointer-events: none; }
+}

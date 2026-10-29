@@ -88,7 +88,10 @@ class Settings(BaseSettings):
         return self
 
     # Web
-    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
+    learning_animation_model: str = "google/gemini-3.8-flash"
+    learning_tts_model: str = "google/gemini-3.8-flash-lite-tts"
+    learning_demo_mode: bool = True
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000", "http://localhost:3002"]
     # Extra browser origins allowed to open the live-talk WebSocket (sharing tunnels). Same-origin
     # connections are always allowed; these cover tunnels that rewrite the Host header.
     trusted_origin_patterns: Annotated[list[str], NoDecode] = ["*.lhr.life", "*.*.ts.net"]

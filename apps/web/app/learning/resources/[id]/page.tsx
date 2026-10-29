@@ -1,9 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Check, Headphones } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
@@ -48,7 +49,19 @@ function LessonSlides({ content, language }: { content: LessonContent; language:
   return <section className="mt-8" aria-label="Lesson slides" lang={language}><div className="flex items-center justify-between gap-4"><p className="text-sm font-semibold text-brand-primary">Step {index + 1} of {slides.length}</p><div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-accent transition-all" style={{ width: `${((index + 1) / slides.length) * 100}%` }} /></div></div><article className="mt-3 min-h-[260px] rounded-2xl border border-border-soft bg-surface p-6 shadow-[0_4px_20px_rgba(11,42,91,0.05)] sm:p-8"><p className="text-xs font-bold uppercase tracking-wide text-brand-primary">{slide.title}</p><h2 className="mt-3 text-2xl font-bold leading-tight">{slide.body}</h2><p className="mt-5 max-w-2xl text-base leading-8 text-text-secondary">{slide.detail}</p></article><div className="mt-4 flex items-center justify-between gap-3"><Button variant="outline" className="min-h-11" disabled={index === 0} onClick={() => setIndex(value => value - 1)}><ArrowLeft /> Previous</Button><Button className="min-h-11" disabled={index === slides.length - 1} onClick={() => setIndex(value => value + 1)}>Next <ArrowLeft className="rotate-180" /></Button></div></section>;
 }
 
+const CourseModal = dynamic(() => import("@/features/learning/course-modal"), { ssr: false });
 export default function LearningResourcePage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const config = useQuery({ queryKey: ["animated-config"], queryFn: () => apiFetch<{ demo_mode: boolean }>("/learning/animated/config") });
+  const item = useQuery({ queryKey: ["learning-resource", params.id], queryFn: () => apiFetch<Resource>(`/learning/resources/${params.id}`), enabled: config.data?.demo_mode === false });
+  if (config.isPending) return <p className="p-8">Opening lesson…</p>;
+  if (config.isError) return <p role="alert" className="p-8">Unable to load learning settings.</p>;
+  if (config.data.demo_mode || (item.data?.lesson_content as Record<string, unknown> | undefined)?.animated_available) return <><EntrepreneurNav active="learn" /><CourseModal resourceId={params.id} onClose={() => router.push("/learn")} /></>;
+  if (item.isPending) return <p className="p-8">Opening lesson…</p>;
+  return <TextResourcePage />;
+}
+function TextResourcePage() {
   const { locale } = useLocaleSwitch();
   const t = copy[locale];
   const ui = locale === "am" ? { practice: "ልምምድ", retry: "እንደገና ይመልከቱ", completed: "ተጠናቋል", complete: "ምዕራፉን አጠናቅቅ", saveError: "ምዕራፉን ማስቀመጥ አልተቻለም።" } : locale === "om" ? { practice: "Shaakala", retry: "Irra deebi'ii ilaali", completed: "Xumurame", complete: "Boqonnaa xumuri", saveError: "Boqonnaa kana kuusuun hin danda'amne." } : locale === "so" ? { practice: "Tababar", retry: "Dib u eeg oo isku day", completed: "La dhammeeyay", complete: "Dhammaystir cutubka", saveError: "Cutubka lama kaydin karin." } : { practice: "Practice", retry: "Not quite. Review the example and try again.", completed: "Completed", complete: "Mark chapter complete", saveError: "This chapter could not be saved." };

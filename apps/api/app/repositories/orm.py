@@ -297,6 +297,34 @@ class LearningResource(Base):
     updated_at: Mapped[datetime] = _ts()
 
 
+class CoursePreparation(Base):
+    __tablename__ = "course_preparations"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("documents.id"), unique=True)
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id"))
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"))
+    title: Mapped[str] = mapped_column(String(240))
+    language: Mapped[str] = mapped_column(String(8), default="en")
+    status: Mapped[str] = mapped_column(String(24), default="queued", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(Text)
+    plan: Mapped[dict | None] = mapped_column(JSONB)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
+class LessonPlayback(Base):
+    __tablename__ = "lesson_playbacks"
+    learner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="CASCADE"), primary_key=True)
+    version: Mapped[str] = mapped_column(String(40))
+    position_ms: Mapped[int] = mapped_column(Integer, default=0)
+    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = _ts()
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
     __table_args__ = (

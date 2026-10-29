@@ -50,12 +50,12 @@ async def create_resource(body: ResourceIn, db: AsyncSession = Depends(get_db)):
     db.add(resource)
     await db.commit()
     await db.refresh(resource)
-    return await _resource_out(db, resource)
+    return await _resource_out(db, resource, include_private=True)
 
 @router.get("/resources")
 async def admin_resources(db: AsyncSession = Depends(get_db)):
     rows = (await db.scalars(select(LearningResource).order_by(LearningResource.updated_at.desc()))).all()
-    return [{**(await _resource_out(db, resource)).model_dump(mode="json"), "storage_reference": resource.storage_reference, "approval_status": resource.approval_status, "is_active": resource.is_active, "is_demo": resource.is_demo, "skill_id": str(resource.skill_id), "content_owner": resource.content_owner} for resource in rows]
+    return [{**(await _resource_out(db, resource, include_private=True)).model_dump(mode="json"), "storage_reference": resource.storage_reference, "approval_status": resource.approval_status, "is_active": resource.is_active, "is_demo": resource.is_demo, "skill_id": str(resource.skill_id), "content_owner": resource.content_owner} for resource in rows]
 
 @router.patch("/resources/{resource_id}", response_model=LearningResourceOut)
 async def update_resource(resource_id: uuid.UUID, body: ResourceIn, db: AsyncSession = Depends(get_db)):
@@ -69,7 +69,7 @@ async def update_resource(resource_id: uuid.UUID, body: ResourceIn, db: AsyncSes
     resource.updated_at = utcnow()
     await db.commit()
     await db.refresh(resource)
-    return await _resource_out(db, resource)
+    return await _resource_out(db, resource, include_private=True)
 
 @router.patch("/resources/{resource_id}/status", response_model=LearningResourceOut)
 async def update_resource_status(resource_id: uuid.UUID, body: ResourceStatusIn, account: UserAccount = Depends(strict_account), db: AsyncSession = Depends(get_db)):
@@ -84,7 +84,7 @@ async def update_resource_status(resource_id: uuid.UUID, body: ResourceStatusIn,
     resource.updated_at = utcnow()
     await record_audit(db, "learning.resource.status", entity_type="learning_resource", entity_id=resource.id, actor=account.email, status=body.approval_status)
     await db.commit()
-    return await _resource_out(db, resource)
+    return await _resource_out(db, resource, include_private=True)
 
 @router.get("/coverage")
 async def coverage(db: AsyncSession = Depends(get_db)):
