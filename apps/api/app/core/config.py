@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     minio_bucket: str = "documents"
     minio_secure: bool = False
     learning_media_url_ttl_seconds: int = 300
+    human_audio_orphan_ttl_minutes: int = 60
 
     # AI gateway. ai_provider="fake" runs fully offline (tests, no API key).
     ai_provider: str = "openrouter"

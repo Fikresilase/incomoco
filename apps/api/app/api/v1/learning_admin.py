@@ -5,14 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminUser, get_db
+from app.api.deps import get_db, require_permission, strict_account
 from app.api.v1.learning import _resource_out
 from app.repositories.audit_repo import record_audit
-from app.repositories.orm import LearningResource, LearningSkill, utcnow
+from app.repositories.orm import LearningResource, LearningSkill, UserAccount, utcnow
 from app.schemas.learning import LearningResourceOut, LearningSkillOut
 from app.schemas.learning_admin import ResourceIn, ResourceStatusIn, SkillIn
 
-router = APIRouter(prefix="/admin/learning", tags=["admin: learning"], dependencies=[AdminUser])
+router = APIRouter(prefix="/admin/learning", tags=["admin: learning"], dependencies=[Depends(require_permission("users.manage"))])
 
 VALID_TRANSITIONS = {"draft": {"draft", "review"}, "review": {"review", "approved", "draft"}, "approved": {"approved", "archived"}, "archived": {"archived", "draft"}}
 
@@ -72,7 +72,7 @@ async def update_resource(resource_id: uuid.UUID, body: ResourceIn, db: AsyncSes
     return await _resource_out(db, resource)
 
 @router.patch("/resources/{resource_id}/status", response_model=LearningResourceOut)
-async def update_resource_status(resource_id: uuid.UUID, body: ResourceStatusIn, username: str = AdminUser, db: AsyncSession = Depends(get_db)):
+async def update_resource_status(resource_id: uuid.UUID, body: ResourceStatusIn, account: UserAccount = Depends(strict_account), db: AsyncSession = Depends(get_db)):
     resource = await db.get(LearningResource, resource_id)
     if not resource:
         raise HTTPException(404, "Resource not found")
@@ -82,7 +82,7 @@ async def update_resource_status(resource_id: uuid.UUID, body: ResourceStatusIn,
     if body.is_active is not None:
         resource.is_active = body.is_active
     resource.updated_at = utcnow()
-    await record_audit(db, "learning.resource.status", entity_type="learning_resource", entity_id=resource.id, actor=username, status=body.approval_status)
+    await record_audit(db, "learning.resource.status", entity_type="learning_resource", entity_id=resource.id, actor=account.email, status=body.approval_status)
     await db.commit()
     return await _resource_out(db, resource)
 

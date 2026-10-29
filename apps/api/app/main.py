@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from app.api.deps import limiter, parse_session_cookie
 from app.api.v1 import (
     admin_auth,
+    admin_notifications,
     adviser_admin,
     analytics,
     auth,
@@ -17,6 +18,7 @@ from app.api.v1 import (
     dashboard,
     documents,
     entrepreneur,
+    human_adviser,
     learning,
     learning_admin,
     voice,
@@ -69,7 +71,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    for router in (chat.router, voice.router, entrepreneur.router, dashboard.router, learning.router, learning_admin.router, adviser_admin.router, admin_auth.router, auth.router, documents.router, analytics.router):
+    for router in (chat.router, voice.router, entrepreneur.router, dashboard.router, learning.router, learning_admin.router, adviser_admin.router, human_adviser.router, admin_auth.router, admin_notifications.router, auth.router, documents.router, analytics.router):
         app.include_router(router, prefix="/api/v1")
 
     @app.get("/health", tags=["health"])

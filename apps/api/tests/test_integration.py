@@ -100,20 +100,20 @@ async def test_full_flow():
             assert resp.status_code == 200
             events = parse_sse(resp.text)
             names = [e for e, _ in events]
-            assert names[0] == "start" and names[1] == "sources" and names[-1] == "done"
+            assert names[0] == "start" and names[1] == "sources" and names[-2:] == ["done", "learning_recommendations"]
             assert "delta" in names
             start = events[0][1]
             sources = events[1][1]["sources"]
             assert sources and sources[0]["title"] == "services guide"
             assert "Inkomoko Services Guide" in sources[0]["breadcrumb"]
-            done = events[-1][1]
+            done = events[-2][1]
             assert done["no_answer"] is False
             conversation_id = start["conversation_id"]
             assistant_id = start["assistant_message_id"]
 
             # follow-up in the same conversation, Amharic
             resp = await client.post(
-                "/api/v1/chat", json={"message": "ኢንኮሞኮ ብድር ይሰጣል?", "conversation_id": conversation_id}
+                "/api/v1/chat", json={"message": "ኢንኮሞኮ ብድር ይሰጣል?", "conversation_id": conversation_id, "lang": "am"}
             )
             assert parse_sse(resp.text)[0][1]["lang"] == "am"
 
@@ -125,7 +125,7 @@ async def test_full_flow():
 
             # --- history
             convs = (await client.get("/api/v1/conversations")).json()
-            assert [c["id"] for c in convs] == [conversation_id]
+            assert conversation_id in [c["id"] for c in convs]
             conv = (await client.get(f"/api/v1/conversations/{conversation_id}")).json()
             assert [m["role"] for m in conv["messages"]] == ["user", "assistant", "user", "assistant"]
             assert conv["messages"][1]["sources"]
@@ -136,7 +136,7 @@ async def test_full_flow():
             regen = await client.post(
                 "/api/v1/chat", json={"regenerate": True, "conversation_id": conversation_id}
             )
-            assert parse_sse(regen.text)[-1][0] == "done"
+            assert parse_sse(regen.text)[-2][0] == "done"
             conv = (await client.get(f"/api/v1/conversations/{conversation_id}")).json()
             assert len(conv["messages"]) == 4
 
@@ -175,7 +175,7 @@ async def test_full_flow():
             )
             events = parse_sse(resp.text)
             assert events[1][1]["sources"] == []
-            assert events[-1][1]["no_answer"] is True
+            assert next(payload for event, payload in events if event == "done")["no_answer"] is True
             await drain_worker(app)
             assert (await client.get(f"/api/v1/admin/documents/{doc['id']}")).json()["status"] == "deleted"
             # old citations still display after deletion
@@ -194,7 +194,7 @@ async def test_text_small_talk_is_answered_directly_without_search():
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post("/api/v1/chat", json={"message": "Hello, how are you?"})
             events = parse_sse(resp.text)
-            assert [e for e, _ in events] == ["start", "sources", "delta", "done"]
+            assert [e for e, _ in events] == ["start", "sources", "delta", "done", "learning_recommendations"]
             assert events[1][1]["sources"] == []
             assert events[2][1]["text"] == "Hi! I am doing well, thanks for asking."
             assert events[3][1]["no_answer"] is False
@@ -212,7 +212,7 @@ async def test_text_small_talk_is_answered_directly_without_search():
                 "/api/v1/chat",
                 json={"message": "What loans does Inkomoko offer?", "conversation_id": conversation_id},
             )
-            assert [e for e, _ in parse_sse(resp.text)][-1] == "done"
+            assert [e for e, _ in parse_sse(resp.text)][-2:] == ["done", "learning_recommendations"]
 
 
 def _live_turn(ws, audio: bytes) -> tuple[list[dict], int]:

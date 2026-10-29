@@ -110,6 +110,8 @@
   "admin": {
     "console": "አስተዳዳሪ",
     "overview": "አጠቃላይ እይታ",
+    "advisers": "አማካሪዎች",
+    "notifications": "ማሳወቂያዎች",
     "documents": "ሰነዶች",
     "logout": "ውጣ",
     "openChat": "ውይይቱን ክፈት",

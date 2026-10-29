@@ -72,16 +72,27 @@ export async function apiRequest(
   const isRaw =
     body instanceof FormData || body instanceof Blob || body === undefined;
   let res: Response;
+  const csrf = typeof document !== "undefined"
+    ? document.cookie.split("; ").find((part) => part.startsWith("inkomoko_csrf="))?.split("=")[1]
+    : undefined;
+  const method = (init.method ?? "GET").toUpperCase();
+  const requestInit: RequestInit = {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(isRaw ? {} : { "Content-Type": "application/json" }),
+      ...(csrf && !["GET", "HEAD", "OPTIONS"].includes(method) ? { "X-CSRF-Token": decodeURIComponent(csrf) } : {}),
+      ...headers,
+    },
+    body: isRaw ? (body as BodyInit | undefined) : JSON.stringify(body),
+  };
   try {
-    res = await fetch(apiUrl(path, query), {
-      ...init,
-      credentials: "include",
-      headers: {
-        ...(isRaw ? {} : { "Content-Type": "application/json" }),
-        ...headers,
-      },
-      body: isRaw ? (body as BodyInit | undefined) : JSON.stringify(body),
-    });
+    res = await fetch(apiUrl(path, query), requestInit);
+    // Access tokens are short-lived; rotate the seven-day refresh session once and retry.
+    if (res.status === 401 && !path.endsWith("/auth/refresh")) {
+      const refreshed = await fetch(apiUrl("/auth/refresh"), { method: "POST", credentials: "include" });
+      if (refreshed.ok) res = await fetch(apiUrl(path, query), requestInit);
+    }
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new NetworkError();

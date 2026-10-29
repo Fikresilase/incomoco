@@ -13,7 +13,8 @@ x-api-env: &api-env
     MINIO_ENDPOINT: minio:9000
     MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-inkomoko}
     MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-inkomoko-secret}
-    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:${WEB_PORT:-3000}}
+    # Keep the normal app port and the isolated main-worktree port accepted locally.
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002}
     WATCHFILES_FORCE_POLLING: "true"
 
 services:

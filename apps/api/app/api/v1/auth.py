@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.config import get_settings
-from app.repositories.orm import AccountRole, AuthSession, Role, UserAccount
+from app.repositories.orm import AccountRole, AuthSession, EntrepreneurProfile, Role, UserAccount
 from app.schemas.auth import AccountCreateIn, AccountOut, AuthOut, LoginIn, RegisterIn
 from app.services.auth import (
     create_session,
@@ -44,8 +44,22 @@ async def _login(account: UserAccount, db: AsyncSession, response: Response) -> 
     return AuthOut(account=await _account_out(db, account))
 
 
+async def _claim_selected_demo(request: Request, account: UserAccount, db: AsyncSession) -> None:
+    """Claim only the explicitly selected, unowned demo business for an entrepreneur account."""
+    if not await db.scalar(select(AccountRole).join(Role, Role.id == AccountRole.role_id).where(AccountRole.account_id == account.id, Role.name == "entrepreneur")):
+        return
+    demo_key = request.cookies.get("inkomoko_demo_key")
+    if not demo_key:
+        return
+    profile = await db.scalar(select(EntrepreneurProfile).where(EntrepreneurProfile.demo_key == demo_key, EntrepreneurProfile.is_demo.is_(True), EntrepreneurProfile.user_id.is_(None)))
+    if profile:
+        profile.user_id = account.id
+        profile.organization_id = account.organization_id
+        profile.identity_type = "registered"
+
+
 @router.post("/register", response_model=AuthOut, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterIn, response: Response, db: AsyncSession = Depends(get_db)) -> AuthOut:
+async def register(body: RegisterIn, request: Request, response: Response, db: AsyncSession = Depends(get_db)) -> AuthOut:
     if await db.scalar(select(UserAccount).where(UserAccount.email == body.email.lower())):
         raise HTTPException(409, "Account already exists")
     organization = await default_organization(db)
@@ -55,14 +69,17 @@ async def register(body: RegisterIn, response: Response, db: AsyncSession = Depe
     await db.flush()
     role = await db.scalar(select(Role).where(Role.name == "entrepreneur"))
     db.add(AccountRole(account_id=account.id, role_id=role.id))
+    await db.flush()
+    await _claim_selected_demo(request, account, db)
     return await _login(account, db, response)
 
 
 @router.post("/login", response_model=AuthOut)
-async def login(body: LoginIn, response: Response, db: AsyncSession = Depends(get_db)) -> AuthOut:
+async def login(body: LoginIn, request: Request, response: Response, db: AsyncSession = Depends(get_db)) -> AuthOut:
     account = await db.scalar(select(UserAccount).where(UserAccount.email == body.email.lower()))
     if not account or not account.is_active or not verify_password(body.password, account.password_hash):
         raise HTTPException(401, "Invalid credentials")
+    await _claim_selected_demo(request, account, db)
     return await _login(account, db, response)
 
 

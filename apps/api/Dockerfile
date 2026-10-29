@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+# Used only to probe uploaded WebM/Opus, OGG, and MP3 bytes server-side.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN python -m pip install --no-cache-dir uv==0.13.0
 
 ENV PYTHONUNBUFFERED=1 \

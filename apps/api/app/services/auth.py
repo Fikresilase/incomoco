@@ -77,7 +77,7 @@ async def ensure_default_roles(db: AsyncSession) -> None:
     role_permissions = {
         "super_admin": {"users.manage", "roles.manage", "reports.view"},
         "admin": {"users.manage", "reports.view"},
-        "adviser": set(),
+        "adviser": {"profile.read_assigned", "messaging.use", "recommendations.create"},
         "entrepreneur": {"profile.read_own", "profile.write_own", "learning.use", "business.use"},
     }
     for role_name, keys in role_permissions.items():

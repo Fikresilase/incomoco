@@ -43,5 +43,8 @@ class MinioBlobStore:
             if exc.code != "NoSuchKey":
                 raise
 
+    def list_prefix(self, prefix: str):
+        return self._client.list_objects(self._bucket, prefix=prefix, recursive=True)
+
     def presigned_get(self, key: str, ttl_seconds: int) -> str:
         return self._client.presigned_get_object(self._bucket, key, expires=timedelta(seconds=ttl_seconds))

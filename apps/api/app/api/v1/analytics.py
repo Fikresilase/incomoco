@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminUser, get_container
+from app.api.deps import get_container, require_permission
 from app.core.container import Container
 from app.core.db import get_db
 from app.schemas.admin import AnalyticsSummary, GapsOut
 from app.services.analytics_service import AnalyticsService
 
-router = APIRouter(prefix="/admin/analytics", tags=["admin: analytics"], dependencies=[AdminUser])
+router = APIRouter(prefix="/admin/analytics", tags=["admin: analytics"], dependencies=[Depends(require_permission("reports.view"))])
 
 
 @router.get("/summary", response_model=AnalyticsSummary)

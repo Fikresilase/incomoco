@@ -8,7 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_container, get_db, session_id_from
 from app.core.container import Container
-from app.repositories.orm import EntrepreneurProfile, LearningEvent, LearningProgress, LearningResource, LearningSkill, SkillEvidence, utcnow
+from app.repositories.orm import (
+    EntrepreneurProfile,
+    LearningEvent,
+    LearningProgress,
+    LearningResource,
+    LearningSkill,
+    SkillEvidence,
+    utcnow,
+)
 from app.schemas.learning import (
     LearningResourceOut,
     LearningSkillOut,

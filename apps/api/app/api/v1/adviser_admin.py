@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminUser, get_db
+from app.api.deps import get_db, require_permission
 from app.repositories.orm import AdviserQueueItem, BusinessAction, BusinessGoal, EntrepreneurProfile, utcnow
 from app.services.adviser import SkillStatusService
 
-router = APIRouter(prefix="/admin", tags=["admin: adviser"], dependencies=[AdminUser])
+router = APIRouter(prefix="/admin", tags=["admin: adviser"], dependencies=[Depends(require_permission("users.manage"))])
 
 @router.get("/entrepreneurs")
 async def entrepreneurs(db: AsyncSession = Depends(get_db)):

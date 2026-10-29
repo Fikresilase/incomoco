@@ -125,3 +125,208 @@ The account and role tables now exist; the remaining “not implemented” items
 ## Decision Needed
 
 The product owner has approved the account/session policy. The schema foundation is now in place, but the task remains open until authentication, ownership enforcement, bootstrap, and their tests are implemented.
+
+## Adviser assignment and messaging progress (main branch)
+
+### Completed in this increment
+
+- Added additive Alembic revision `0018_adviser_messaging`; it was applied successfully and the main database is at `0018_adviser_messaging (head)`.
+- Added organization-scoped `AdviserAssignment` records with retained ended assignments.
+- Added separate `HumanConversation` and `HumanMessage` tables; existing AI conversation tables were not changed.
+- Added recipient-scoped persisted notifications and adviser-attributed approved learning recommendations.
+- Added private `/api/v1/human` routes for assignment, assignment listing, opening conversations, text messages, paginated messages, notifications, and approved-resource recommendations.
+- New private routes require an active persisted account, a live non-revoked session, organization scope, object-level assignment/profile ownership, and CSRF validation for mutations.
+- Added adviser permissions to the role-permission seed path and migration.
+
+### Verification
+
+- Main Docker API startup: passed.
+- Alembic upgrade through `0018_adviser_messaging`: passed.
+- Main API `/health`: HTTP 200.
+- Full Python tests and Ruff were not run from this worktree because it has no local `.venv`; the shared checkout environment has permission-locked bytecode caches.
+
+### Still incomplete
+
+- Private MinIO voice-note upload, finalization, short-lived playback URLs, file validation, and abandoned-upload cleanup are not implemented. No human audio endpoint is exposed.
+- Admin adviser invitation/account-management endpoints are not implemented.
+- Conversation listing, read receipts, unread counts, reassignment audit API, and complete notification idempotency need implementation and focused PostgreSQL authorization tests.
+- Existing legacy shared-admin routes remain outside this increment and must be migrated before the security foundation is complete.
+- No frontend adviser or messaging UI was changed, per task scope.
+
+This phase remains **in progress**, not complete. The next safe milestone is the private audio-note contract plus PostgreSQL authorization tests before any UI exposure.
+
+## Phase 4B progress (main branch, 2026-10-29)
+
+### Existing implementation verified
+
+- Repository: `/Users/admin/Documents/incomoco-main`.
+- Main Docker API rebuilt and started successfully.
+- Alembic head: `0018_adviser_messaging`.
+- API health: HTTP 200.
+- Existing Docker volumes were preserved.
+
+### New Phase 4B capabilities
+
+- Private audio messages: `POST /api/v1/human/conversations/{conversation_id}/audio` accepts browser audio formats (`webm`, `ogg`, `wav`, `mpeg`), stores objects under a conversation-scoped private key, creates an attributed human audio message, and notifies the authorized recipient. `GET /api/v1/human/messages/{message_id}/audio` returns a five-minute signed URL only after conversation authorization.
+- Read state: `POST /api/v1/human/conversations/{conversation_id}/read`, `GET /api/v1/human/conversations/unread-count`, `GET /api/v1/human/notifications/unread-count`, and idempotent notification read operations.
+- Adviser administration: `GET /api/v1/human/admin/advisers`, `POST /api/v1/human/admin/advisers`, and `POST /api/v1/human/admin/advisers/{adviser_id}/deactivate`. Adviser creation requires an authenticated admin permission and an explicit password; responses never return password material. Deactivation marks the account inactive and revokes its sessions.
+
+### Authorization enforcement
+
+- New endpoints require a persisted active account and a live non-revoked access session.
+- Assignment, conversation, audio, and recommendation access is organization-scoped and checked against the current active assignment or verified entrepreneur ownership.
+- Mutations require the double-submit CSRF header/cookie pair.
+- Sender identity is always taken from the authenticated account.
+- Human audio storage is separate from AI `MessageAudio` objects.
+
+### Verification results
+
+- Docker API rebuild: passed.
+- API startup: passed.
+- Alembic current revision: passed at `0018_adviser_messaging (head)`.
+- `/health`: passed, HTTP 200.
+- OpenAPI route registration: passed for all new Phase 4B routes.
+- Ruff, full backend tests, PostgreSQL authorization integration tests, and MinIO upload/playback integration tests: **not run** in this increment. The main worktree has no local `.venv`, and no test fixtures were added yet.
+
+### Remaining security issues
+
+- Audio duration validation is not yet implemented for every browser container format; upload size and MIME checks are present, but production rollout needs media probing and abandoned-object cleanup.
+- Legacy shared-admin routes still need a full route-by-route migration to persisted-account permissions.
+- Full PostgreSQL/MinIO authorization coverage is still required before enabling a frontend messaging UI.
+- Adviser invitation workflow and assignment-history API are still minimal.
+
+Phase 4B is **incomplete** until the integration tests and remaining security hardening are complete.
+
+## Phase 4C verification (2026-10-29)
+
+### Verified and fixed
+
+- Confirmed the active repository is `/Users/admin/Documents/incomoco-main` on `main`; the separate `fikre` checkout was not modified.
+- Confirmed PostgreSQL, MinIO, Weaviate, API, and proxy containers are running in the isolated `inkomoko-main` Compose project.
+- Confirmed Alembic head remains `0018_adviser_messaging` and API startup completes after migration checks.
+- Found and fixed a startup blocker caused by `learning_admin.py` retaining a removed `AdminUser` reference.
+- Replaced legacy `AdminUser` router guards for analytics, documents, learning administration, and adviser administration with persisted-account permission dependencies. The admin login now also issues a CSRF cookie.
+- Added organization-scoped admin assignment history at `GET /api/v1/human/admin/assignments/history`, without message content.
+- Existing backend test suite: **46 passed, 4 skipped**. Skips are the repository's existing Docker-dependent integration tests; they were not counted as passes.
+- Main API health after the fixes: **HTTP 200**.
+
+### Not yet verified
+
+- No new PostgreSQL authorization test module has been added yet, so the required Phase 4C scenarios are not proven by automated integration tests.
+- No MinIO voice-note security test module has been added yet. Audio duration probing and abandoned-upload cleanup remain unresolved; MIME and size checks alone are insufficient for production readiness.
+- The full end-to-end account/assignment/message/audio/reassignment workflow was not demonstrated with disposable test accounts.
+- Ruff was not available in the main worktree environment and was not run successfully.
+
+### Frontend readiness
+
+**NO-GO.** Do not build or expose frontend private messaging screens yet. The live API starts and the main authorization boundary is improved, but Phase 4C requires real PostgreSQL/MinIO integration coverage, robust audio duration validation/cleanup, and complete legacy-route regression coverage first.
+
+## Phase 4D verification (2026-10-29)
+
+### Checks executed
+
+- Ruff using the existing backend development environment with an external cache directory: **passed**.
+- Existing backend suite: **46 passed, 4 skipped**.
+- Docker-backed `tests/test_integration.py` against ports `5435`, `8082`, `50053`, and `9012`: **4 skipped**. The fixture reported that its host-side reachability check could not connect to the Docker ports; these were not counted as passes.
+- `pytest -m integration`: **50 deselected** because the repository's existing integration tests are not marked with that marker.
+- API rebuild/startup: **passed**.
+- API `/health`: **HTTP 200**.
+- Alembic current: **0018_adviser_messaging (head)**.
+
+### Fixes in this pass
+
+- Corrected legacy admin router authorization to use persisted sessions and permission checks.
+- Fixed the startup regression from the stale `AdminUser` reference in learning administration.
+- Added CSRF issuance for the legacy admin login path.
+- Added admin-only assignment-history access with actor and timestamp fields, excluding private message content.
+- Ruff issues in the new security code and affected import blocks were corrected.
+
+### Phase 4D blockers still open
+
+- The repository has no dedicated Phase 4D PostgreSQL authorization test module yet; the required assignment, reassignment, ownership, session, CSRF, notification, and recommendation scenarios are therefore not proven by automated integration tests.
+- The repository has no dedicated MinIO security test module yet.
+- Human audio currently checks declared MIME and upload size but does not perform reliable server-side duration/container probing for all formats. Since the existing browser recorder emits WAV, unsupported non-WAV human-note formats must remain restricted until probing is added.
+- Abandoned-upload cleanup is not implemented.
+- Existing signed playback URLs remain valid until expiry; reassignment revokes new authorization but cannot revoke an already-issued URL. A proxy/download-token design is required for strict immediate revocation.
+
+### Final readiness decision
+
+**NO-GO.** The API is operational and legacy authorization is harder, but the critical PostgreSQL/MinIO security tests and robust private-audio validation required by Phase 4D have not passed. No frontend private messaging work should begin yet.
+
+## Phase 4E execution results (2026-10-29)
+
+### Test runner
+
+The host-side fixture previously skipped because it hardcoded `localhost`. It now accepts service hosts while preserving localhost defaults. The repeatable isolated command is:
+
+```bash
+docker run --rm --network inkomoko-main_default \
+  -v /Users/admin/Documents/incomoco-main/apps/api:/app -w /app \
+  -e TEST_POSTGRES_HOST=postgres -e TEST_POSTGRES_PORT=5432 \
+  -e TEST_WEAVIATE_HOST=weaviate -e TEST_WEAVIATE_PORT=8080 \
+  -e TEST_WEAVIATE_GRPC_PORT=50051 \
+  -e TEST_MINIO_HOST=minio -e TEST_MINIO_PORT=9000 \
+  inkomoko-main-api sh -lc \
+  'uv pip install --python /opt/venv/bin/python pytest pytest-asyncio && \
+   /opt/venv/bin/pytest -q tests/test_integration.py tests/test_phase4e_security.py -rs'
+```
+
+The fixture creates and drops only `inkomoko_test` and uses the test bucket `test-documents`; development volumes and data are not reset.
+
+### Results
+
+- Existing real Postgres/Weaviate/MinIO flow (`tests/test_integration.py`): **4 passed**.
+- New Phase 4E private-route regression module (`tests/test_phase4e_security.py`): **2 passed**.
+- Existing unit/backend suite: **46 passed, 4 skipped**.
+- Ruff: **passed** using the existing backend development environment.
+- API startup/health: **passed**, `/health` HTTP 200.
+- Alembic: **0018_adviser_messaging (head)**.
+
+The existing integration flow was updated only for current API behavior: the `learning_recommendations` SSE event is emitted after `done`, and explicit language is supplied for the Amharic test. The test fixture now seeds a disposable admin with its persisted permission rows.
+
+### Phase 4E remaining blockers
+
+- The required full adviser-assignment authorization matrix is not yet implemented as dedicated integration tests; only unauthenticated private-route and CSRF regression coverage was added in this pass.
+- Dedicated MinIO security tests for forged keys, reassignment playback revocation, duration limits, and abandoned cleanup are still missing.
+- Human audio upload still validates declared MIME and size, but not reliable server-side duration/container metadata for every format. Existing frontend recording is WAV; other containers remain insufficiently verified.
+- Presigned URLs remain valid until expiry. Reassignment blocks new URL issuance but cannot immediately revoke a URL already issued. Strict revocation requires authenticated playback proxying.
+
+### Final readiness
+
+**CONDITIONAL GO for backend/API development only; NO-GO for frontend private messaging.** The real Docker-network integration path now executes and passes, but the completion gate is not met because the full authorization matrix and private-audio security suite are still absent.
+
+## Phase 4 final implementation pass (2026-10-29)
+
+### Implemented
+
+- Added migration `0019_human_audio_metadata` for validated audio content type and duration.
+- Human audio uploads now validate actual bytes. WAV is probed with the Python standard library; WebM/Opus, OGG, and MP3 are probed with `ffprobe` in the API image. Files over `MAX_UPLOAD_MB` or five minutes are rejected.
+- Human audio playback is now an authenticated streaming endpoint. It checks current conversation authorization before reading MinIO, so reassignment blocks new playback requests instead of issuing a reusable presigned URL.
+- Upload failures delete the object after database rollback. Added idempotent `python -m app.commands.cleanup_human_audio`, controlled by `HUMAN_AUDIO_ORPHAN_TTL_MINUTES` (default 60), which removes only old unreferenced `human-voice/` objects.
+- Added organization-scoped admin/adviser entrepreneur list APIs, current conversation lookup, recommendation lookup, and surfaced assignment history in the admin UI.
+- Added `/admin/advisers`, `/adviser/login`, `/adviser`, `/messages`, and `/notifications` screens using the existing auth, CSRF, MinIO, learning, and voice components.
+- The shared web API client now forwards the CSRF cookie as `X-CSRF-Token` for state-changing requests; no second auth or messaging system was introduced.
+- Isolated the `main` Compose project on ports 3002/8012/5435/9012/8082/50053 so it does not share the other checkout's migration volume.
+
+### Verification executed
+
+- Main Compose migration: `0018_adviser_messaging -> 0019_human_audio_metadata`, passed.
+- API health and authenticated admin smoke checks: passed.
+- Ruff: **passed**.
+- Full backend suite: **46 passed, 6 skipped**. The skips are Docker-dependent tests run inside the API container and are not counted as passes.
+- Docker-network integration/security suite (`tests/test_integration.py tests/test_phase4e_security.py`): **6 passed, 2 warnings**.
+- Frontend typecheck: **passed**.
+- Frontend ESLint: **passed with 68 generated VAD warnings and 0 errors**.
+- Frontend production build: **passed** with existing ONNX/VAD critical-dependency warnings.
+- Cleanup command: executed successfully; removed 0 objects in the isolated development bucket.
+
+### Remaining limitations and readiness
+
+- The repository still does not contain the complete authorization matrix requested for every cross-organization, reassignment-history, notification, recommendation, and private-audio case.
+- No browser automation was available in this verification pass, so the complete admin-create -> adviser-login -> assign -> text -> voice -> recommendation -> reassign journey is not claimed as passed. It requires disposable persisted accounts and browser microphone permission.
+- Email delivery and self-service adviser activation are not configured. The admin UI uses a manually handed-over temporary password.
+- Historical conversations remain preserved while reassignment blocks the previous adviser's current authorization; a separately modeled historical-message visibility policy is still needed for a new adviser.
+
+### Final decision
+
+**CONDITIONAL GO.** The implemented backend and frontend surfaces build and the Docker-network integration path passes. Phase 4 is not marked complete because the full requested authorization matrix and browser-level end-to-end workflow still require execution.

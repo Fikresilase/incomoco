@@ -4,14 +4,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminUser, get_container
+from app.api.deps import get_container, require_permission
 from app.core.container import Container
 from app.core.db import get_db
 from app.schemas.admin import DocumentOut, DocumentPage
 from app.services.chat_service import NotFoundError
 from app.services.document_service import DocumentService, UploadError
 
-router = APIRouter(prefix="/admin/documents", tags=["admin: documents"], dependencies=[AdminUser])
+router = APIRouter(prefix="/admin/documents", tags=["admin: documents"], dependencies=[Depends(require_permission("users.manage"))])
 
 
 @router.post("", response_model=DocumentOut, status_code=status.HTTP_202_ACCEPTED)

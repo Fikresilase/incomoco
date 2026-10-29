@@ -1,10 +1,10 @@
-import uuid
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminUser, limiter
+from app.api.deps import limiter, require_permission
 from app.core.db import get_db
 from app.repositories.audit_repo import record_audit
 from app.repositories.orm import UserAccount
@@ -25,6 +25,7 @@ async def login(request: Request, body: LoginIn, response: Response, db: AsyncSe
     access, refresh, _ = await create_session(db, account)
     response.set_cookie("inkomoko_access", access, max_age=900, httponly=True, samesite="lax")
     response.set_cookie("inkomoko_refresh", refresh, max_age=604800, httponly=True, samesite="lax")
+    response.set_cookie("inkomoko_csrf", secrets.token_urlsafe(24), max_age=604800, httponly=False, samesite="lax")
     await record_audit(db, "admin.login")
     await db.commit()
     return AdminOut(username=account.email)
@@ -39,6 +40,5 @@ async def logout() -> Response:
 
 
 @router.get("/me", response_model=AdminOut)
-async def me(account_id: str = AdminUser, db: AsyncSession = Depends(get_db)) -> AdminOut:
-    account = await db.get(UserAccount, uuid.UUID(account_id))
+async def me(account: UserAccount = Depends(require_permission("users.manage"))) -> AdminOut:
     return AdminOut(username=account.email)

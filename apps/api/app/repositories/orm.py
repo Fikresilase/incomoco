@@ -515,3 +515,76 @@ class LearningEvent(Base):
     resource_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="SET NULL"))
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = _ts()
+
+
+class AdviserAssignment(Base):
+    __tablename__ = "adviser_assignments"
+    __table_args__ = (
+        CheckConstraint("status IN ('active','ended')", name="ck_adviser_assignment_status"),
+        Index("ix_adviser_assignment_current", "organization_id", "entrepreneur_profile_id", "status"),
+        Index("ix_adviser_assignment_adviser", "adviser_account_id", "status"),
+    )
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    entrepreneur_profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    adviser_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="RESTRICT"), nullable=False)
+    assigned_by_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="RESTRICT"), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
+    reason: Mapped[str | None] = mapped_column(String(240))
+    assigned_at: Mapped[datetime] = _ts()
+    ended_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class HumanConversation(Base):
+    __tablename__ = "human_conversations"
+    __table_args__ = (Index("ix_human_conversation_profile", "entrepreneur_profile_id", "status"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    entrepreneur_profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    adviser_assignment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("adviser_assignments.id", ondelete="RESTRICT"), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open", server_default="open")
+    created_at: Mapped[datetime] = _ts()
+
+
+class HumanMessage(Base):
+    __tablename__ = "human_messages"
+    __table_args__ = (
+        CheckConstraint("message_type IN ('text','audio')", name="ck_human_message_type"),
+        Index("ix_human_message_conversation_created", "conversation_id", "created_at"),
+    )
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    conversation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("human_conversations.id", ondelete="CASCADE"), nullable=False)
+    sender_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="RESTRICT"), nullable=False)
+    message_type: Mapped[str] = mapped_column(String(16), nullable=False, default="text", server_default="text")
+    text_body: Mapped[str | None] = mapped_column(Text)
+    audio_storage_key: Mapped[str | None] = mapped_column(Text)
+    audio_content_type: Mapped[str | None] = mapped_column(String(80))
+    audio_duration_seconds: Mapped[float | None] = mapped_column()
+    created_at: Mapped[datetime] = _ts()
+    read_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    __table_args__ = (Index("ix_notifications_recipient_unread", "recipient_account_id", "read_at"), UniqueConstraint("recipient_account_id", "event_type", "related_entity_id", name="uq_notification_recipient_event"))
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    recipient_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="CASCADE"), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    related_entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    title: Mapped[str | None] = mapped_column(String(200))
+    body: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _ts()
+    read_at: Mapped[datetime | None] = _ts(nullable=True, default=False)
+
+
+class AdviserRecommendation(Base):
+    __tablename__ = "adviser_recommendations"
+    __table_args__ = (UniqueConstraint("adviser_assignment_id", "learning_resource_id", name="uq_adviser_recommendation_resource"),)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    adviser_assignment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("adviser_assignments.id", ondelete="RESTRICT"), nullable=False)
+    entrepreneur_profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entrepreneur_profiles.id", ondelete="CASCADE"), nullable=False)
+    adviser_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_accounts.id", ondelete="RESTRICT"), nullable=False)
+    learning_resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("learning_resources.id", ondelete="RESTRICT"), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _ts()

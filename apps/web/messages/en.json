@@ -110,6 +110,8 @@
   "admin": {
     "console": "Admin",
     "overview": "Overview",
+    "advisers": "Advisers",
+    "notifications": "Notifications",
     "documents": "Documents",
     "logout": "Sign out",
     "openChat": "Open chat",

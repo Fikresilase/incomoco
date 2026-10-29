@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.core.container import Container
 from app.core.db import get_db
 from app.core.security import SESSION_COOKIE
-from app.repositories.orm import UserAccount
+from app.repositories.orm import AuthSession, UserAccount, utcnow
 from app.services.auth import permission_keys
 
 limiter = Limiter(key_func=get_remote_address)
@@ -47,7 +47,7 @@ def require_admin(request: Request) -> str:
     except (jwt.PyJWTError, KeyError, ValueError):
         account_id = None
     if account_id is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated") from None
     request.state.account_id = account_id
     return str(account_id)
 
@@ -66,8 +66,32 @@ async def current_account(request: Request, db=Depends(get_db)) -> UserAccount:
     return account
 
 
+async def strict_account(request: Request, db=Depends(get_db)) -> UserAccount:
+    """Authenticated account for private APIs; validates the JWT and live session."""
+    account = await current_account(request, db)
+    token = request.cookies.get("inkomoko_access", "")
+    try:
+        claims = jwt.decode(token, get_settings().jwt_secret, algorithms=["HS256"])
+        session_id = uuid.UUID(claims["sid"])
+    except (jwt.PyJWTError, KeyError, ValueError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated") from None
+    session = await db.scalar(select(AuthSession).where(AuthSession.id == session_id, AuthSession.account_id == account.id))
+    if not session or session.revoked_at or session.expires_at <= utcnow():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session is no longer active")
+    return account
+
+
+async def require_csrf(request: Request) -> None:
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return
+    cookie = request.cookies.get("inkomoko_csrf")
+    header = request.headers.get("x-csrf-token")
+    if not cookie or not header or not __import__("hmac").compare_digest(cookie, header):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "CSRF validation failed")
+
+
 def require_permission(permission: str):
-    async def dependency(account: UserAccount = Depends(current_account), db=Depends(get_db)) -> UserAccount:
+    async def dependency(account: UserAccount = Depends(strict_account), db=Depends(get_db)) -> UserAccount:
         if permission not in await permission_keys(db, account.id):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Permission denied")
         return account
@@ -83,6 +107,8 @@ __all__ = [
     "parse_session_cookie",
     "require_admin",
     "current_account",
+    "strict_account",
+    "require_csrf",
     "require_permission",
     "session_id_from",
 ]
