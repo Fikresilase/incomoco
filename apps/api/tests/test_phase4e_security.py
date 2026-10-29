@@ -13,6 +13,7 @@ async def test_private_human_routes_require_persisted_auth():
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             for path in (
+                "/api/v1/admin/mvp-overview",
                 "/api/v1/human/assignments",
                 "/api/v1/human/notifications",
                 "/api/v1/human/conversations/unread-count",

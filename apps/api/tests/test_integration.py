@@ -67,6 +67,10 @@ async def test_full_flow():
             ok = await client.post("/api/v1/admin/login", json={"username": "admin", "password": "admin123"})
             assert ok.status_code == 200
             assert (await client.get("/api/v1/admin/me")).json() == {"username": "admin"}
+            overview = await client.get("/api/v1/admin/mvp-overview")
+            assert overview.status_code == 200, overview.text
+            assert overview.json()["registered_entrepreneurs"] == 0
+            assert overview.json()["adviser_workloads"] == []
 
             # --- upload validation + ingestion
             bad_type = await client.post(
